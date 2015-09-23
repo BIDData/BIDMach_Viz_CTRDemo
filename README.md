@@ -1,2 +1,3 @@
 # BIDMach_Viz
-Interactive Machine Learning and Vizualization Tools
+Interactive Machine Learning and Visualization Tools
+
