@@ -14,6 +14,15 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, quality_func: 
   }
 
   def getRanking() {
+     val Ad_Example = Map("Ad1" -> Random.nextInt, "Ad2"->Random.nextInt, "Ad3"->Random.nextInt,"Ad4" -> Random.nextInt, "Ad5"->Random.nextInt, "Ad6"->Random.nextInt,"Ad7" -> Random.nextInt, "Ad8"->Random.nextInt, "Ad9"->Random.nextInt)
+  val m1 = ListMap(Ad_Example.toSeq.sortBy(_._2):_*) 
+  for ((k,v) <- m1) 
+    printf("key: %s, value: %s\n",k,v)
+   
+    val map1 = collection.mutable.Map("Kim" -> 90)
+    var i = 1
+    for ((advertiser, quality) <- m1) {
+    map1 += advertiser -> i; i = i +1;
 
   }
 
