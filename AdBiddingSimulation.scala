@@ -1,12 +1,11 @@
-# imports here
+import scala.collection.mutable
+import scala.collections.mutable.Array
+import scala.collections.HashMap
 
-class AdBiddingSimulation {
 
-  def init(adModel: Model, userModel: Model, quality_func: {(float, float) => float}) {
+class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, quality_func: (Float, Float) => Float) {
 
-  }
-
-  def simulate(keyPhrases: List[String], bids: Map[String => Float]) {
+  def simulate(keyPhrases: Array[String], bids: mutable.HashMap[String => Float]) {
 
   }
 
