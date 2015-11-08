@@ -1,157 +1,73 @@
-import scala.collection.mutable.HashMap
-import scala.collection.mutable
-import scala.collections.mutable.Array
+import scala.collection.Map
 import scala.collection.immutable.ListMap
-import util.Random
 
 
-class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, quality_func: (Float, Float) => Float) {
+class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, beta: Float) {
 
-  def simulate(keyPhrases: Array[String], bids: HashMap[String => Float]) {
+  def qualityFunc(CTR: Float, bid: Float) = {(math.pow(CTR, alpha) * math.pow(bid, beta)).toFloat}
+
+  def invQualityFunc(quality: Float, CTR: Float) = {math.pow(quality / math.pow(CTR, alpha), 1 / beta).toFloat}
+
+  def simulate(keyPhrases: Array[String], bids: Map[String, Float]) : Map[String, Float] = {
     val totalProfits = keyPhrases.map((keyPhrase: String) =>  {
-      val qualityScores = bids.map((advertiser: String) => {getQualityScore(advertiser, keyPhrase, bids(advertiser))})
+      val qualityScores = bids map {
+        case (advertiser: String, bid: Float) => {
+          (advertiser, getQualityScore(advertiser, keyPhrase, bid))
+        }
+      }
       val ranks = getRanking(qualityScores)
-      val finalQuality = getFinalQualityScore(keyPhrase, ranks, bids)
-      val profits = ranks.map((rank: Int) => (calculateProfit(finalQuality, rank)))
+      val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
+      val profits = ranks map {
+        case (advertiser: String, rank: Int) => {
+          (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
+        }
+      }
       //TODO: what to do after getting profits for each key phrase?
-      profits.foldleft(0.0)(_+_)
-    }
+      aggregateProfits(profits)
+    })
   }
 
-  def getQualityScore(advertiser: String, keyword: String, bid: Float): Float = {
-    val myCTR :Float = adModel.getCTR(1, advertiser, keyword);
-    val quality :Float = quality_func(myCTR, bid);
-  }
-//Simulate a rank_CTR matrix
-  val Rnk_CTR = new Array[Float](10)
-  Rnk_CTR(0) = 1   
-  Rnk_CTR(1) = 0.9f
-  Rnk_CTR(2) = 0.8f
-  Rnk_CTR(3) = 0.7f 
-  Rnk_CTR(4) = 0.6f 
-  Rnk_CTR(5) = 0.5f    
-  Rnk_CTR(6) = 0.4f 
-  Rnk_CTR(7) = 0.3f    
-  Rnk_CTR(8) = 0.2f   
-  Rnk_CTR(9) = 0.1f  
-
-  //Generate some random bids
-val bid_map = Map("Ad1" -> abs(Random.nextFloat*10), "Ad2" -> abs(Random.nextFloat*10), "Ad3" ->abs(Random.nextFloat*10), "Ad4" ->abs(Random.nextFloat*10), "Ad5" ->abs(Random.nextFloat*10),"Ad6" ->abs(Random.nextFloat*10),"Ad7" ->abs(Random.nextFloat*10),"Ad8" ->abs(Random.nextFloat*10),"Ad9" ->abs(Random.nextFloat*10))
-
-  //Generate a random Ad/Quality Map   
-  val Ad_Example = Map("Ad1" -> abs(Random.nextInt(100)), "Ad2"->abs(Random.nextInt(100)), "Ad3"->abs(Random.nextInt(100)),"Ad4" -> abs(Random.nextInt(100)), "Ad5"->abs(Random.nextInt(100)), "Ad6"->abs(Random.nextInt(100)),"Ad7" -> abs(Random.nextInt(10)), "Ad8"->abs(Random.nextInt(100)), "Ad9"->abs(Random.nextInt(100)))
-  
-//Get the quality score Map
-  def Get_Quality_Map(Keyword: String, Bid_map: collection.mutable.Map[String, Float]) = {
-  val Ad_Real = collection.mutable.Map[String, Float]()
-  for ((k,v) <- Bid_map){
-    Ad_Real += k-> (getQualityScore(k,Keyword,v))
-  }
-  return Ad_Real
+  def getQualityScore(advertiser: String, keyPhrase: String, bid: Float): Float = {
+    val myCTR :Float = adModel.getCTR(1, advertiser, keyPhrase);
+    val quality :Float = qualityFunc(myCTR, bid);
   }
 
-  def getRanking(advertiser_map: Map) {
-
-
-  }
-
-
-
-def getRanking(Keyword: String, Ad_Real: collection.mutable.Map[String, Float] ) = {  
-//Sort the map Advertiser Quality Score
-  val m1 = ListMap(Ad_Example.toSeq.sortWith(_._2 > _._2):_*)
-    val sorted_ad = collection.mutable.Map[String, Int]()
+  def getRanking(qualityScores: Map[String, Float]): Map[String, Int] = {
+    val sorted_scores = ListMap(qualityScores.toSeq.sortWith(_._2 > _._2):_*)
+    val sorted_map = collection.mutable.Map[String, Int]()
     var i = 1
-    for ((advertiser, quality) <- m1) {
-    sorted_ad += advertiser -> i; i = i +1;
-  }
-  //Get the map advertiser final quality
-  val final_quality = collection.mutable.Map[String, Float]()
-  for ((k,v) <- sorted_ad){
-  final_quality += k-> (Ad_Real(k)*Rnk_CTR(v))
-}
-//Get the final map advertiser ranking
-val m2 = ListMap(final_quality.toSeq.sortWith(_._2 > _._2):_*) 
-    val sorted_ad2 = collection.mutable.Map[String, Int]()
-    var i2 = 1
-    for ((advertiser, quality) <- m2) {
-    sorted_ad2 += advertiser -> i2; i2 = i2 +1; 
-}
-return sorted_ad2
-} 
-
-def getProfit(Rank_Map:collection.mutable.Map[String, Int])
-  
- //Get the map rank -> final quality score   
- val rank_quality = collection.mutable.Map[Int, Float]()
- var i3 = 1
- for ((advertiser, quality) <- Rank_Map){
-   rank_quality += i3 -> quality
-   i3 = i3 + 1
- }
- //Get the map rank -> advertiser 
- val rank_ad = collection.mutable.Map[Int, String]()
- var i4 = 1
- for ((advertiser, quality) <- Rank_Map){
-   rank_ad +=  i4 -> advertiser
-   i4 = i4 + 1
- }
- //Return a profit map for a given number of slots: advertiser --> profit (the reserve is not handled here)
- //Not the correct quality function 
-val slots = 4
-val profit_map = collection.mutable.Map[String, Float]()
- for( a <- 1 to slots){
-   profit_map +=  rank_ad(a) -> bid_map(rank_ad(a+1))*Rnk_CTR(a) 
- }
-//Compute the total profit
-var total_profit = 0.0
-for ((advertiser, profit2) <- profit_map){
-  total_profit = total_profit + profit2   
- }
- 
-
-  def getCTR(advertiser: String, keyword: String, rank: Int): Float = {
-    
-    // TODO: Instead of random, read from ad*kw row vector
-    // (assuming we have the mapping from ad*kw -> index)
-    val ad_kw_CTR = scala.util.Random.nextFloat
-
-    // TODO: Instead of random, read from rank column vector
-    // (just use rank as the index)
-    val rank_CTR = scala.util.Random.nextFloat
-
-    // Estimated CTR of this (ad, keyword) at this rank
-    var CTR = ad_kw_CTR * rank_CTR
-
-    return CTR
-  }
-
-  def calculateProfits(finalScores: Array[Double], ranking: Int):Double = {
-    
-    // If there's no next ranking, just return 0?
-    if (ranking >= finalScores.length - 1) {
-        return 0;   
+    for ((advertiser, quality) <- sorted_scores) {
+      sorted_map += advertiser -> i
+      i = i + 1
     }
-    
-    // Grab the final score of the next ranking
-    val a_score = finalScores(ranking)
-    val next_score = finalScores(ranking+1)
-    
-    // Now, calculte what we would have had to bid to maintain this position
-    // Q = CTR^a * bid^b
-    // So, the required bid is (Q/CTR^a) ^ (1/b)
-    //cost_a = inv_quality_func(next_score, ctr(rank, A))
-    val a = 2.0
-    val b = 1.0
-    val ctr = 5.0
-    
-    val term = next_score / scala.math.pow(ctr, a)
-    val cost_a = scala.math.pow(term, 1/b)
-    return cost_a;
+    sorted_map
   }
 
-  def aggregateMetrics() {
+  def getFinalQualityScores(keyPhrase: String, ranks: Map[String, Int],
+                            bids: Map[String, Float]): Map[Int, Float] = {
+    ranks map {
+      case (advertiser: String, rank: Int) => {
+        val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
+        (rank, qualityFunc(finalCTR, bids(advertiser)))
+      }
+    }
+  }
 
+  def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
+    //TODO: adding reserve price
+    if (rank >= finalScores.keys.max - 1) {
+        return 0
+    }
+    // Grab the final score of the next ranking
+    val nextScore = finalScores(rank + 1)
+
+    // Now, calculate what we would have had to bid to maintain this position
+    val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
+    invQualityFunc(nextScore, finalCTR)
+  }
+
+  def aggregateProfits(profits: Map[String, Float]) {
+    profits.values.sum
   }
 }
 
