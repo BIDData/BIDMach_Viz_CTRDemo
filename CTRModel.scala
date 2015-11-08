@@ -1,4 +1,4 @@
-import BIDMat.{Dict, IDict, FMat, SMat, SBMat}
+import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
 import BIDMat.MatFunctions._
 import BIDMat.SciFunctions._
 
@@ -12,7 +12,7 @@ import BIDMat.SciFunctions._
   * @param adKwComponent a 1 * (number of ad-keyphrase pair) matrix.
   */
 
-class CTRModel(adMap: SBMat, kwMap: SBMat, posComponent: SMat, adKwComponent: SMat) {
+class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: SMat, adKwComponent: SMat) {
 
   /** Convert the mapping matrix into BIDMat Dict so that we can use ad/keyphrase to get their index.*/
   val adDict = Dict(adMap)
