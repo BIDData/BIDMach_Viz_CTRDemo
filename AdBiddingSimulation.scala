@@ -9,8 +9,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, quality_func: 
 
   }
 
-  def getQualityScore( ) {
-
+  def getQualityScore(advertiser: String, keyword: String, bid: Float): Float = {
+    val myCTR :Float = adModel.getCTR(1, advertiser, keyword);
+    val quality :Float = quality_func(myCTR, bid);
   }
 
   def getRanking() {
