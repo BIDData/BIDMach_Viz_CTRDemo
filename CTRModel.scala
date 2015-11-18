@@ -2,6 +2,7 @@ import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
 import BIDMat.MatFunctions._
 import BIDMat.SciFunctions._
 
+
 /**
   * A class containing the CTR model computed offline. By matrix factorization,
   * CTR_matrix = posComponent * adKwComponent.
@@ -15,13 +16,21 @@ import BIDMat.SciFunctions._
 class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: SMat, adKwComponent: SMat) {
 
   /** Convert the mapping matrix into BIDMat Dict so that we can use ad/keyphrase to get their index.*/
-  val adDict = Dict(adMap)
-  val kwDict = Dict(kwMap)
-  val adKwDict = IDict(adKwMap)
+  val adDict = new Dict(adMap.toCSMat)
+  val kwDict = new Dict(kwMap.toCSMat)
+  var adKwCSMat = csrow(adKwMap(0, ?).toString)
+  var i = 1
+  while (i < adKwMap.nrows) {
+      adKwCSMat = adKwCSMat on csrow(adKwMap(i, ?).toString)
+      i += 1
+  }
+  val adKwDict = new Dict(adKwCSMat)
+  
 
   def getCTR(rank: Int, ad: String, kw: String): Float = {
     val ad_kw = row(adDict(ad), kwDict(kw))
-    posComponent(rank, 1) * adKwComponent(1, adKwDict(ad_kw))
+    posComponent(rank, 0) * adKwComponent(0, adKwDict(ad_kw.toString))
   }
-
 }
+
+

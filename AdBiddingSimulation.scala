@@ -1,3 +1,5 @@
+Package Simulation
+
 import scala.collection.Map
 import scala.collection.immutable.ListMap
 
@@ -8,28 +10,33 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
 
   def invQualityFunc(quality: Float, CTR: Float) = {math.pow(quality / math.pow(CTR, alpha), 1 / beta).toFloat}
 
+  //TODO: since not all advertiser bid for all key phrases, bids should be keyPhrases specific
   def simulate(keyPhrases: Array[String], bids: Map[String, Float]) : Map[String, Float] = {
-    val totalProfits = keyPhrases.map((keyPhrase: String) =>  {
-      val qualityScores = bids map {
-        case (advertiser: String, bid: Float) => {
-          (advertiser, getQualityScore(advertiser, keyPhrase, bid))
+    val totalProfits = keyPhrases map {
+      case (keyPhrase: String) => {
+        val qualityScores = bids map {
+          case (advertiser: String, bid: Float) => {
+            (advertiser, getQualityScore(advertiser, keyPhrase, bid))
+          }
         }
-      }
-      val ranks = getRanking(qualityScores)
-      val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
-      val profits = ranks map {
-        case (advertiser: String, rank: Int) => {
-          (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
+        val ranks = getRanking(qualityScores)
+        val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
+        val profits = ranks map {
+          case (advertiser: String, rank: Int) => {
+            (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
+          }
         }
+        //TODO: what to do after getting profits for each key phrase?
+        (keyPhrase, aggregateProfits(profits))
       }
-      //TODO: what to do after getting profits for each key phrase?
-      aggregateProfits(profits)
-    })
+    }
+    totalProfits.toMap
   }
 
   def getQualityScore(advertiser: String, keyPhrase: String, bid: Float): Float = {
-    val myCTR :Float = adModel.getCTR(1, advertiser, keyPhrase);
-    val quality :Float = qualityFunc(myCTR, bid);
+    val myCTR:Float = adModel.getCTR(1, advertiser, keyPhrase);
+    qualityFunc(myCTR, bid);
+
   }
 
   def getRanking(qualityScores: Map[String, Float]): Map[String, Int] = {
@@ -66,7 +73,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
     invQualityFunc(nextScore, finalCTR)
   }
 
-  def aggregateProfits(profits: Map[String, Float]) {
+  def aggregateProfits(profits: Map[String, Float]): Float = {
     profits.values.sum
   }
 }
