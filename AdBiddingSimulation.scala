@@ -1,6 +1,6 @@
 Package Simulation
 
-import scala.collection.Map
+import scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
 
 
@@ -11,9 +11,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   def invQualityFunc(quality: Float, CTR: Float) = {math.pow(quality / math.pow(CTR, alpha), 1 / beta).toFloat}
 
   //TODO: since not all advertiser bid for all key phrases, bids should be keyPhrases specific
-  def simulate(keyPhrases: Array[String], bids: Map[String, Float]) : Map[String, Float] = {
-    val totalProfits = keyPhrases map {
-      case (keyPhrase: String) => {
+  def simulate(key_bid: Map[String, Map[String, Float]]) : Map[String, Float] = {
+    val totalProfits = key_bid map {
+      case (keyPhrase: String, bids: Map[String, Float]) => {
         val qualityScores = bids map {
           case (advertiser: String, bid: Float) => {
             (advertiser, getQualityScore(advertiser, keyPhrase, bid))
@@ -34,8 +34,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   }
 
   def getQualityScore(advertiser: String, keyPhrase: String, bid: Float): Float = {
-    val myCTR:Float = adModel.getCTR(1, advertiser, keyPhrase);
-    qualityFunc(myCTR, bid);
+    val myCTR:Float = adModel.getCTR(1, advertiser, keyPhrase)
+    qualityFunc(myCTR, bid)
 
   }
 
@@ -47,7 +47,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
       sorted_map += advertiser -> i
       i = i + 1
     }
-    sorted_map
+    sorted_map.toMap
   }
 
   def getFinalQualityScores(keyPhrase: String, ranks: Map[String, Int],
@@ -63,7 +63,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
     //TODO: adding reserve price
     if (rank >= finalScores.keys.max - 1) {
-        return 0
+        return 1
     }
     // Grab the final score of the next ranking
     val nextScore = finalScores(rank + 1)
