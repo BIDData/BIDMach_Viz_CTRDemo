@@ -28,9 +28,8 @@ class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: SMat, ad
   
 
   def getCTR(rank: Int, ad: String, kw: String): Float = {
-    val ad_kw = row(adDict(ad), kwDict(kw))
-    posComponent(rank, 0) * adKwComponent(0, adKwDict(ad_kw.toString))
+    val ad_kw = row(adDict(ad)+1, kwDict(kw)+1)
+    posComponent(rank-1, 0) * adKwComponent(0, adKwDict(ad_kw.toString))
   }
 }
-
 
