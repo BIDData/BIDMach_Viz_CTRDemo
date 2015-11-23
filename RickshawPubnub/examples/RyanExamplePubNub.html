@@ -178,7 +178,7 @@ var graph = new Rickshaw.Graph( {
 } );
 */
 
-var seriesData = [ [], [], [] ];
+var seriesData = [ [], [], [], [], [], [] ];
 
 
 var graph = new Rickshaw.Graph( {
@@ -190,19 +190,34 @@ var graph = new Rickshaw.Graph( {
     preserve: true,
     series: [
         {
-            color: 'steelblue',
+            color: palette.color(),
             name: 'Ad0',
             data: seriesData[0]
         },
         {
-            color: 'lightblue',
+            color: palette.color(),
             name: 'Ad1',
             data: seriesData[1]
-        }, 
+        },
         {
-            color: 'purple',
-            name: 'Ad3',
+            color: palette.color(),
+            name: 'Ad2',
             data: seriesData[2]
+        },
+        {
+            color: palette.color(),
+            name: 'Ad3',
+            data: seriesData[3]
+        },
+        {
+            color: palette.color(),
+            name: 'Ad4',
+            data: seriesData[4]
+        },
+        {
+            color: palette.color(),
+            name: 'Ad5',
+            data: seriesData[5]
         }
     ]
 });
@@ -211,36 +226,28 @@ graph.render();
 
 new Rickshaw.Fixtures.PubNub({
   channel: 'rickshaw-channel-15',
+  subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f', 
   graph: graph
 });
 
-//var pubnub = PUBNUB.init({
-//  publish_key: 'pub-c-89fdfacd-8a5d-4edb-a231-458106fce60f',
-//  subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f'
-//});
 
-
-var pubnub = PUBNUB({
-    subscribe_key: 'demo',
-    publish_key: 'demo'
-});
-
-/*
 var pubnub = PUBNUB({
     subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f',
-    publish_key: 'pub-c-89fdfacd-8a5d-4edb-a231-458106fce60f'// always require    // only required if publishing
+    publish_key: 'pub-c-89fdfacd-8a5d-4edb-a231-458106fce60f'
 });
-*/
+
 
 setInterval(function(){
 
-  console.log(seriesData[0]);
-  graph.update();
+  //console.log(Math.floor(new Date().getTime() / 1000))
 
   pubnub.publish({
     channel: 'rickshaw-channel-15',
     message: {
       y: [
+        Math.random() * 99, 
+        Math.random() * 99, 
+        Math.random() * 99,
         Math.random() * 99, 
         Math.random() * 99, 
         Math.random() * 99
@@ -257,6 +264,7 @@ var preview = new Rickshaw.Graph.RangeSlider( {
     element: document.getElementById('preview'),
 } );
 */
+
 
 
 var hoverDetail = new Rickshaw.Graph.HoverDetail( {
@@ -359,7 +367,7 @@ addAnnotation(true);
 setTimeout( function() { setInterval( addAnnotation, 6000 ) }, 6000 );
 */
 
-/*
+
 var previewXAxis = new Rickshaw.Graph.Axis.Time({
     graph: preview.previews[0],
     timeFixture: new Rickshaw.Fixtures.Time.Local(),
@@ -367,9 +375,20 @@ var previewXAxis = new Rickshaw.Graph.Axis.Time({
 });
 
 previewXAxis.render();
-*/
 
 
+
+</script>
+
+<script>
+pubnub.subscribe({
+    channel: 'rickshaw-channel-15',
+    message: function(m){console.log(m)},
+    error: function (error) {
+      // Handle error here
+      console.log(JSON.stringify(error));
+    }
+ });
 </script>
 
 </body>
