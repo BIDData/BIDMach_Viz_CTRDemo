@@ -1,6 +1,6 @@
 Package Simulation
 
-import scala.collection.immutable.Map
+mport scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
 
 
@@ -10,7 +10,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
 
   def invQualityFunc(quality: Float, CTR: Float) = {math.pow(quality / math.pow(CTR, alpha), 1 / beta).toFloat}
 
-  //TODO: since not all advertiser bid for all key phrases, bids should be keyPhrases specific
   def simulate(key_bid: Map[String, Map[String, Float]]) : Map[String, Float] = {
     val totalProfits = key_bid map {
       case (keyPhrase: String, bids: Map[String, Float]) => {
@@ -26,6 +25,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
             (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
           }
         }
+        
         //TODO: what to do after getting profits for each key phrase?
         (keyPhrase, aggregateProfits(profits))
       }
@@ -62,19 +62,60 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
 
   def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
     //TODO: adding reserve price
-    if (rank >= finalScores.keys.max - 1) {
-        return 1
+    if (rank >= finalScores.keys.max) {
+        return 1 //for the last advertiser, just set the price it pays to 1
     }
+
     // Grab the final score of the next ranking
     val nextScore = finalScores(rank + 1)
 
     // Now, calculate what we would have had to bid to maintain this position
     val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
     invQualityFunc(nextScore, finalCTR)
+
   }
 
   def aggregateProfits(profits: Map[String, Float]): Float = {
     profits.values.sum
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
