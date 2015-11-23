@@ -123,14 +123,14 @@
 
 // set up our data series with 150 random data points
 
-var seriesData = [ [], [], [], [], [], [], [], [], [] ];
-var random = new Rickshaw.Fixtures.RandomData(150);
+//var seriesData = [ [], [], [], [], [], [], [], [], [] ];
+//var random = new Rickshaw.Fixtures.RandomData(150);
 
-for (var i = 0; i < 150; i++) {
-    random.addData(seriesData);
+//for (var i = 0; i < 150; i++) {
+//    random.addData(seriesData);
 
 //    console.log(seriesData[0][0])
-}
+//}
 
 var palette = new Rickshaw.Color.Palette( { scheme: 'classic9' } );
 
@@ -177,6 +177,10 @@ var graph = new Rickshaw.Graph( {
     ]
 } );
 */
+
+var seriesData = [ [], [], [] ];
+
+
 var graph = new Rickshaw.Graph( {
     element: document.getElementById("chart"),
     width: 900,
@@ -187,13 +191,18 @@ var graph = new Rickshaw.Graph( {
     series: [
         {
             color: 'steelblue',
-            name: 'Cats',
-            data: []
+            name: 'Ad0',
+            data: seriesData[0]
         },
         {
             color: 'lightblue',
-            name: 'Dogs',
-            data: []
+            name: 'Ad1',
+            data: seriesData[1]
+        }, 
+        {
+            color: 'purple',
+            name: 'Ad3',
+            data: seriesData[2]
         }
     ]
 });
@@ -201,34 +210,54 @@ var graph = new Rickshaw.Graph( {
 graph.render();
 
 new Rickshaw.Fixtures.PubNub({
-  channel: 'rickshaw-channel-1',
+  channel: 'rickshaw-channel-15',
   graph: graph
 });
 
-var pubnub = PUBNUB.init({
-  publish_key: 'demo',
-  subscribe_key: 'demo'
+//var pubnub = PUBNUB.init({
+//  publish_key: 'pub-c-89fdfacd-8a5d-4edb-a231-458106fce60f',
+//  subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f'
+//});
+
+
+var pubnub = PUBNUB({
+    subscribe_key: 'demo',
+    publish_key: 'demo'
 });
 
+/*
+var pubnub = PUBNUB({
+    subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f',
+    publish_key: 'pub-c-89fdfacd-8a5d-4edb-a231-458106fce60f'// always require    // only required if publishing
+});
+*/
+
 setInterval(function(){
+
+  console.log(seriesData[0]);
+  graph.update();
+
   pubnub.publish({
-    channel: 'rickshaw-channel-1',
+    channel: 'rickshaw-channel-15',
     message: {
       y: [
         Math.random() * 99, 
+        Math.random() * 99, 
         Math.random() * 99
       ],
-      x: new Date().getTime()
+      x: Math.floor(new Date().getTime() / 1000)//new Date().getTime()
     }
-  })
+  });
 }, 1000);
 
-/*
 
+/*
 var preview = new Rickshaw.Graph.RangeSlider( {
     graph: graph,
     element: document.getElementById('preview'),
 } );
+*/
+
 
 var hoverDetail = new Rickshaw.Graph.HoverDetail( {
     graph: graph,
@@ -236,6 +265,7 @@ var hoverDetail = new Rickshaw.Graph.HoverDetail( {
         return new Date(x * 1000).toString();
     }
 } );
+
 
 var annotator = new Rickshaw.Graph.Annotate( {
     graph: graph,
@@ -285,7 +315,7 @@ var yAxis = new Rickshaw.Graph.Axis.Y( {
 } );
 
 yAxis.render();
-*
+
 
 var controls = new RenderControls( {
     element: document.querySelector('form'),
@@ -305,6 +335,7 @@ var messages = [
     "Added documentation for new methods"
 ];
 
+/*
 setInterval( function() {
     //random.removeData(seriesData);
     random.addData(seriesData);
@@ -314,7 +345,9 @@ setInterval( function() {
     graph.update();
 
 }, 1000 );
+*/
 
+/*
 function addAnnotation(force) {
     if (messages.length > 0 && (force || Math.random() >= 0.95)) {
         annotator.add(seriesData[2][seriesData[2].length-1].x, messages.shift());
@@ -324,7 +357,9 @@ function addAnnotation(force) {
 
 addAnnotation(true);
 setTimeout( function() { setInterval( addAnnotation, 6000 ) }, 6000 );
+*/
 
+/*
 var previewXAxis = new Rickshaw.Graph.Axis.Time({
     graph: preview.previews[0],
     timeFixture: new Rickshaw.Fixtures.Time.Local(),
@@ -333,6 +368,7 @@ var previewXAxis = new Rickshaw.Graph.Axis.Time({
 
 previewXAxis.render();
 */
+
 
 </script>
 
