@@ -117,9 +117,38 @@
         <div id="preview"></div>
     </div>
 
+
+    <form class="valueAlphaForm" 
+        <label for="alpha">Alpha</label>
+        <input type="range" min="0" max="1" value="0.5" id="alpha" step="0.01" oninput="alphaSlider()">
+        <output for="alpha" id="curAlpha">0.5</output>
+    </form>
+
+    <form class="valueBetaForm" 
+        <label for="beta">Beta</label>
+        <input type="range" min="0" max="1" value="0.1" id="beta" step="0.01" oninput="betaSlider()">
+        <output for="beta" id="curBeta">0.1</output>
+    </form>
+
 </div>
 
 <script>
+
+
+var currentAlpha = 0.5;
+var currentBeta = 0.5;
+
+window.alphaSlider = function() {
+    document.querySelector('#curAlpha').value = document.querySelector('#alpha').value;
+
+    currentAlpha = document.querySelector('#alpha').value;
+}
+
+window.betaSlider = function() {
+    document.querySelector('#curBeta').value = document.querySelector('#beta').value;
+
+    currentBeta = document.querySelector('#beta').value;
+}
 
 // set up our data series with 150 random data points
 
@@ -180,6 +209,9 @@ var graph = new Rickshaw.Graph( {
 
 var seriesData = [ [], [], [], [], [], [] ];
 
+var xInit = Math.floor(new Date().getTime() / 1000);
+var seriesData = [[{x:xInit,y:0}], [{x:xInit,y:0}], [{x:xInit,y:0}], [{x:xInit,y:0}], [{x:xInit,y:0}], [{x:xInit,y:0}]];
+
 
 var graph = new Rickshaw.Graph( {
     element: document.getElementById("chart"),
@@ -226,6 +258,7 @@ graph.render();
 
 new Rickshaw.Fixtures.PubNub({
   channel: 'rickshaw-channel-15',
+  // limit: 5,  // add this in to limit the number
   subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f', 
   graph: graph
 });
@@ -245,25 +278,25 @@ setInterval(function(){
     channel: 'rickshaw-channel-15',
     message: {
       y: [
-        Math.random() * 99, 
-        Math.random() * 99, 
-        Math.random() * 99,
-        Math.random() * 99, 
-        Math.random() * 99, 
-        Math.random() * 99
+        Math.random() * 99 * currentAlpha, 
+        Math.random() * 99 * currentAlpha, 
+        Math.random() * 99 * currentAlpha,
+        Math.random() * 99 * currentAlpha, 
+        Math.random() * 99 * currentAlpha, 
+        Math.random() * 99 * currentAlpha
       ],
       x: Math.floor(new Date().getTime() / 1000)//new Date().getTime()
     }
   });
-}, 1000);
+}, 1500);
 
 
-/*
+//
 var preview = new Rickshaw.Graph.RangeSlider( {
     graph: graph,
     element: document.getElementById('preview'),
 } );
-*/
+//
 
 
 
