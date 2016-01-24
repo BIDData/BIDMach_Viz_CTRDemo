@@ -75,16 +75,30 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
 
   def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
     //TODO: adding reserve price
-    if (rank >= finalScores.keys.max) {
-      return 1 //for the last advertiser, just set the price it pays to 1
-    }
 
-    // Grab the final score of the next ranking
-    val nextScore = finalScores(rank + 1)
 
     // Now, calculate what we would have had to bid to maintain this position
     val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
-    invQualityFunc(nextScore, finalCTR)
+
+    // calculate the biding price for rank
+    val curr_bid = invQualityFunc(finalScores(rank), finalCTR)
+
+    if (reservePrice > curr_bid) {
+      return 0
+    }
+    // Grab the final score of the next ranking
+    val nextScore = finalScores(rank + 1)
+
+    val profit = invQualityFunc(nextScore, finalCTR)
+
+    /** IF the biding price from next bid is smaller than the reservePrice then pay bidding price
+      *  O.W pay for the reservePrice
+      */
+    if (reservePrice < profit) {
+      return profit
+    } else {
+      return reservePrice
+    }
 
   }
 
