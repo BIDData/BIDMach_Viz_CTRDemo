@@ -1,3 +1,5 @@
+package simulation
+
 import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
 import BIDMat.MatFunctions._
 import BIDMat.SciFunctions._
@@ -22,15 +24,14 @@ class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: SMat, ad
   var adKwCSMat = CSMat(adKwMap.nrows, 1)
   var i = 0
   while (i < adKwMap.nrows) {
-      adKwCSMat(i, 0) = adKwMap(i, ?).toString
-      i += 1
+    adKwCSMat(i, 0) = adKwMap(i, ?).toString
+    i += 1
   }
   val adKwDict = new Dict(adKwCSMat)
-  
+
 
   def getCTR(rank: Int, ad: String, kw: String): Float = {
     val ad_kw = row(adDict(ad)+1, kwDict(kw)+1)
     posComponent(rank-1, 0) * adKwComponent(0, adKwDict(ad_kw.toString))
   }
 }
-

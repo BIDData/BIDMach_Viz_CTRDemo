@@ -1,10 +1,23 @@
-Package Simulation
+package simulation
 
-mport scala.collection.immutable.Map
+import akka.actor.Actor
+import scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
 
+import simulation.CTRModel
 
-class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, beta: Float) {
+class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, beta: Float, actor: Actor) {
+
+  //
+  def run() = {
+
+  }
+
+
+  def updateParams(newAlpha: Float, newBeta: Float) = {
+
+  }
+
 
   def qualityFunc(CTR: Float, bid: Float) = {(math.pow(CTR, alpha) * math.pow(bid, beta)).toFloat}
 
@@ -25,7 +38,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
             (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
           }
         }
-        
+
         //TODO: what to do after getting profits for each key phrase?
         (keyPhrase, aggregateProfits(profits))
       }
@@ -63,7 +76,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
     //TODO: adding reserve price
     if (rank >= finalScores.keys.max) {
-        return 1 //for the last advertiser, just set the price it pays to 1
+      return 1 //for the last advertiser, just set the price it pays to 1
     }
 
     // Grab the final score of the next ranking
@@ -78,44 +91,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   def aggregateProfits(profits: Map[String, Float]): Float = {
     profits.values.sum
   }
+
+  def sendMetrics() = {
+
+  }
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
