@@ -1,8 +1,7 @@
 package simulation
 
-import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
+import BIDMat._
 import BIDMat.MatFunctions._
-import BIDMat.SciFunctions._
 
 
 /**

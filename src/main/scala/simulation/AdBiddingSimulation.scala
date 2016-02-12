@@ -2,8 +2,6 @@ package simulation
 
 import akka.actor.Actor
 import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
-import BIDMat.MatFunctions._
-import BIDMat.SciFunctions._
 import scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
 
@@ -13,6 +11,8 @@ import org.json4s.native.Serialization._
 import org.json4s.native.Serialization
 
 import scala.collection.mutable
+
+
 
 class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, beta: Float, actor: Actor) {
 
@@ -156,6 +156,5 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
     val jsonStr = compact(render(metrics))
     actor ! jsonStr
   }
-
 
 }
