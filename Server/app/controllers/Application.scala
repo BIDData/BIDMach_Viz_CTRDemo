@@ -9,9 +9,9 @@ import akka.actor.{Actor, Props, ActorSystem,ActorRef}
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.pattern.ask
-import Engine.server
-import BIDMat.MatFunctions._
-import BIDMat.SciFunctions._
+//import Engine.server
+//import BIDMat.MatFunctions._
+//import BIDMat.SciFunctions._
 
 class Waiter() extends Actor{
     var engine:ActorRef = null
@@ -36,7 +36,7 @@ class Waiter() extends Actor{
 	}
 }
 
-object Application extends Controller{
+class Application extends Controller{
 	def index = Action{
 		Ok(views.html.index("Your new application is ready."))
 	}
@@ -44,7 +44,7 @@ object Application extends Controller{
 	val system = ActorSystem("BIDDemo");
 	val waiter = system.actorOf(Props(classOf[Waiter]),"server");
 	//println(System.getProperty("java.library.path"))
-	server.init(system,waiter)
+	//server.init(system,waiter)
 	
 	def getSocket = WebSocket.using[String]{
 		request =>
@@ -55,7 +55,10 @@ object Application extends Controller{
     		val in = Iteratee.foreach[String] {
     			msg => 
                     println(msg)
-                    waiter ! ("browser",msg)
+                    //channel.push("{ 'Ad1': 10, 'Ad2': 15, 'Ad3': 12, 'Ad4': 5, 'Ad5': 6, 'Ad6': 7.5}")
+                    channel.push("{ \"Ad1\": 10,  \"Ad2\": 10,  \"Ad3\": 10,  \"Ad4\": 10,  \"Ad5\": 10,  \"Ad6\": 10}")
+                    //server.changePara(msg)
+                    //waiter ! ("browser",msg)
     			
     			//the channel will push to the Enumerator
     			//val worker = system.actorOf(Props(classOf[Worker],waiter,channel));

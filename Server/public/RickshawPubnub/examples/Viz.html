@@ -352,10 +352,20 @@ function readJSON(JSONdata) {
 
 // For now, just send some JSON data at every iterval. Eventually, will be getting JSON 
 // data from Play server.
+var ws=new WebSocket("ws://localhost:9000/socket")
+ws.onmessage=function(msg){
+    console.log(msg.data)
+    readJSON(msg.data)
+    //console.log(msg.data)
+}
+ws.onopen=function(){
+    console.log("Connected")
+    ws.send("I am the browser")
+}
 setInterval(function(){
 
-  var text = '{ "Ad1": 10, "Ad2": 15, "Ad3": 12, "Ad4": 5, "Ad5": 6, "Ad6": 7.5}';
-  readJSON(text);
+  //var text = '{ "Ad1": 10, "Ad2": 15, "Ad3": 12, "Ad4": 5, "Ad5": 6, "Ad6": 7.5}';
+  //readJSON(text);
 
 }, 1000);
 
