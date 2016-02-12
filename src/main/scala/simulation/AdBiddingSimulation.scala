@@ -2,19 +2,22 @@ package simulation
 
 import akka.actor.Actor
 import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
+import BIDMat.MatFunctions._
 import scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
 
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.native.Serialization._
-import org.json4s.native.Serialization
+import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization
+
 
 import scala.collection.mutable
 
 
 
-class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, beta: Float, actor: Actor) {
+class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
+                          var alpha: Float, var beta: Float, actor: Actor) {
 
   /**
     * start the simulation cycle.
@@ -34,7 +37,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
       sendMetrics(metrics)
     }
   }
-
 
   def updateParams(newAlpha: Float, newBeta: Float) = {
     alpha = newAlpha
@@ -62,11 +64,11 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   def simulate(records: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : String = {
     val uniqueKeyPhraseHash = unique(records(kp_hash)) //TODO: find which column/row is kp_hash
     val i = 0
-    val results = mutable.MutableList[Map]()
+    var results = mutable.ListBuffer[Map]()
     while (i < uniqueKeyPhraseHash.nrows) {
-      val keyPhraseHash = uniqueKeyPhraseHash(i, :)
-      val auction = records (:, records(kp_hash) == keyPhraseHash)
-      results += simulateAuction(auction, advertiserMap, keyPhraseMap))
+      val keyPhraseHash = uniqueKeyPhraseHash(i, ?)
+      val auction = records(?, records(kp_hash) == keyPhraseHash)
+      results += simulateAuction(auction, advertiserMap, keyPhraseMap)
     }
     results
   }
@@ -84,7 +86,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   def simulateAuction(auction: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : Map = {
     val keyPhrase = keyPhraseMap(auction(kp_col)) //TODO: find which col is for keyPhrase
 
-    val bids = Map(auction(:, advertiser_col).copyToFloatArray() zip auction(:, bid_col).copyToFloatArray())
+    val bids = Map(auction(?, advertiser_col).copyToFloatArray().toList zip
+                   auction(?, bid_col).copyToFloatArray().toList)
 
     val qualityScores = bids map {
       case (advertiserHash: Float, bid: Float) => {
@@ -113,11 +116,12 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
   }
 
   def getRanking(qualityScores: Map[String, Float]): Map[String, Int] = {
-    val sorted_scores = ListMap(qualityScores.toSeq.sortWith(_._2 > _._2):_*)
-    val sorted_map = collection.mutable.Map[String, Int]()
+    val sorted_scores = ListMap(qualityScores.toSeq.sortWith(
+      (scorePair1: (String, Float), scorePair2: (String, Float)) => scorePair1._2 > scorePair2._2):_*)
+    val sorted_map = mutable.Map[String, Int]()
     var i = 1
     for ((advertiser, quality) <- sorted_scores) {
-      sorted_map += advertiser -> i
+      sorted_map += (advertiser -> i)
       i = i + 1
     }
     sorted_map.toMap
@@ -128,19 +132,19 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
     ranks map {
       case (advertiser: String, rank: Int) => {
         val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
-        (rank, qualityFunc(finalCTR, bids(advertiser)))
+        (rank, qualityFunc(finalCTR, bids.get(advertiser)))
       }
     }
   }
 
   def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
     //TODO: adding reserve price
-    if (rank >= finalScores.keys.max) {
+    if (rank >= finalScores.keysIterator.max) {
       return 1 //for the last advertiser, just set the price it pays to 1
     }
 
     // Grab the final score of the next ranking
-    val nextScore = finalScores(rank + 1)
+    val nextScore = finalScores.get(rank + 1)
 
     // Now, calculate what we would have had to bid to maintain this position
     val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
@@ -152,8 +156,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel, alpha: Float, 
     profits.values.sum
   }
 
-  def sendMetrics(metrics: mutable.MutableList[Map]) = {
-    val jsonStr = compact(render(metrics))
+  //TODO: fix the logic of producing and sending metrics
+  def sendMetrics(metrics: mutable.ListBuffer[Map]) = {
+    val jsonStr = Serialization.write(metrics)
     actor ! jsonStr
   }
 
