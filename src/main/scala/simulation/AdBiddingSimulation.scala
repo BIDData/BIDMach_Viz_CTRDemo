@@ -1,21 +1,13 @@
 package simulation
 
-import akka.actor.Actor
 import BIDMach.datasources.FileSource
-import BIDMach.datasinks.MatSink
-import BIDMat.{Dict, IDict, FMat, IMat, SMat, SBMat}
+import BIDMat._
 import BIDMat.MatFunctions._
 import scala.collection.breakOut
+import scala.collection.mutable
 import scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
 
-import org.json4s._
-import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
-import org.json4s.jackson.Serialization
-
-
-import scala.collection.mutable
 
 /**
   * The main class for running an ad bidding simulation.
@@ -27,13 +19,12 @@ import scala.collection.mutable
 
 
 class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
-                          var alpha: Float, var beta: Float, actor: Actor,
+                          var alpha: Float, var beta: Float, var reservePrice: Float,
                           dataPath: String,
-                          advertiserMap: Dict, keyPhraseMap: Dict, keyWordMap: Dict,
-                          dataSink: MatSink) {
+                          advertiserMap: Dict, keyPhraseMap: Dict, keyWordMap: Dict) {
 
 
-  val source: FileSource = _
+  var source: FileSource = null
 
 
 
@@ -41,11 +32,15 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     * start the simulation cycle.
     */
   def run() = {
-    source = new FileSource(dataPath)
-    while (source.hasNext()) {
-      val records = source.next()
-      val metrics = simulate(records, keyWordMap, keyPhraseMap)
-      dumpMetrics(metrics)
+    source = FileSource.apply(dataPath)
+    var metricList = mutable.MutableList[FMat]()
+
+    while (source.hasNext) {
+      val recordsGroup = source.next
+      recordsGroup.foreach((records: Mat) => {
+        metricList ++= simulate(FMat(records), keyWordMap, keyPhraseMap)
+      })
+
     }
   }
 
@@ -56,17 +51,16 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     * @param records an FMat with bidding records, potentially from multiple auctions.
     * @param advertiserMap a BIDMat Dict between advertiser strings and their integer id in data.
     * @param keyPhraseMap a BIDMat Dict between key phrase strings and their integer id in data.
-    *
     * @return a list of metric results BIDMach FMat from each auction
     */
 
-  def simulate(records: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : String = {
-    val uniqueKeyPhraseHash = unique(records(kp_hash)) //TODO: find which column/row is kp_hash
+  def simulate(records: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : mutable.MutableList[FMat] = {
+    val uniqueKeyPhraseHash = unique(records(?, 2))
     val i = 0
-    var results = mutable.ListBuffer[FMat]()
+    var results = mutable.MutableList[FMat]()
     while (i < uniqueKeyPhraseHash.nrows) {
       val keyPhraseHash = uniqueKeyPhraseHash(i, ?)
-      val auction = records(?, records(kp_hash) == keyPhraseHash) //get all records for this auction
+      val auction = records(?, records(?, 2) == keyPhraseHash) //get all records for this auction
       results += simulateAuction(auction, advertiserMap, keyPhraseMap)
     }
     results
@@ -84,12 +78,12 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     */
 
   def simulateAuction(auction: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : FMat = {
-    val keyPhraseID = auction(0, kp_col).toInt //TODO: find which column is the keyPhraseID
+    val keyPhraseID = auction(0, 2).toInt //TODO: find which column is the keyPhraseID
     val keyPhrase = keyPhraseMap(keyPhraseID)
 
-    val bidList = auction(?, bid_col).data.toList
-    val advertiserList = auction(?, advertiser_col).data.toList.foreach((id: Float) => advertiserMap(id.toInt))
-    val bids: Map[String, Float] = (advertiserList.zip(bidList))(breakOut)
+    val bidList = auction(?, 3).data.toList
+    val advertiserList = auction(?, 1).data.toList.map((id: Float) => advertiserMap(id.toInt))
+    val bids: Map[String, Float] = advertiserList.zip(bidList)(breakOut)
 
     val qualityScores = bids map {
       case (advertiser: String, bid: Float) => {
@@ -98,15 +92,15 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     }
     val ranks = getRanking(qualityScores)
     val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
-    val profits = ranks map {
+    val profits: Map[String, Float] = ranks map {
       case (advertiser: String, rank: Int) => {
         (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
       }
     }
 
     //TODO: could add more metrics, such as volume of ads, ads per advertiser, etc.
-    row(keyPhraseID, profits.foldLeft(0)(_+_._2))
-
+    val totalProfit = profits.values.foldLeft(0.0)(_+_)
+    row(keyPhraseID, totalProfit)
   }
 
 
@@ -140,22 +134,31 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   }
 
   def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
-    //TODO:adding reserve pricing
-    if (rank >= finalScores.keysIterator.max) {
-      return 1 //for the last advertiser, just set the price it pays to 1
-    }
-
-    // Grab the final score of the next ranking
-    val nextScore = finalScores.get(rank + 1)
-
     // Now, calculate what we would have had to bid to maintain this position
     val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
-    invQualityFunc(nextScore, finalCTR)
+
+    // calculate the biding price for rank
+    val curr_bid = invQualityFunc(finalScores(rank), finalCTR)
+
+    if (reservePrice > curr_bid) {
+      return 0
+    }
+    // Grab the final score of the next ranking
+    val nextScore = finalScores(rank + 1)
+
+    val profit = invQualityFunc(nextScore, finalCTR)
+
+    /** IF the biding price from next bid is smaller than the reservePrice then pay bidding price
+      *  O.W pay for the reservePrice
+      */
+    if (reservePrice < profit) {
+      return profit
+    } else {
+      return reservePrice
+    }
+
   }
 
-  def dumpMetrics(metrics: mutable.ListBuffer[FMat]) = {
-    metrics.foreach(dataSink.put)
-  }
 
 
   def updateParams(newAlpha: Float, newBeta: Float) = {
