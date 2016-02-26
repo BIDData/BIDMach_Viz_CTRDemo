@@ -14,7 +14,7 @@ import BIDMat.MatFunctions._
   * @param adKwComponent a 1 * (number of ad-keyphrase pair) matrix.
   */
 
-class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: SMat, adKwComponent: SMat) {
+class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: FMat, adKwComponent: FMat) {
 
   /** Convert the mapping matrix into BIDMat Dict so that we can use ad/keyphrase to get their index. */
   /** Beware: The index in adKwMap is 1-indexed, while the matrix is 0-indexed. */
@@ -30,7 +30,8 @@ class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: SMat, ad
 
 
   def getCTR(rank: Int, ad: String, kw: String): Float = {
-    val ad_kw = row(adDict(ad)+1, kwDict(kw)+1)
-    posComponent(rank-1, 0) * adKwComponent(0, adKwDict(ad_kw.toString))
+
+    val ad_kw = row(adDict(ad), kwDict(kw))
+    posComponent(0, rank-1) * adKwComponent(0, adKwDict(ad_kw.toString))
   }
 }

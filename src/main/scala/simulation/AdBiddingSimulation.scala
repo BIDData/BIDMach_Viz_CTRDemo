@@ -27,21 +27,27 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   var source: FileSource = null
 
 
-
   /**
     * start the simulation cycle.
     */
-  def run() = {
-    source = FileSource.apply(dataPath)
+  def run(): mutable.MutableList[FMat] = {
+    source = FileSource.apply(dataPath + "%d.fmat")
+    source.opts.nend = 1 //need to change
+    source.opts.dorows=true
+    source.init
     var metricList = mutable.MutableList[FMat]()
 
+    var i = 0
     while (source.hasNext) {
       val recordsGroup = source.next
       recordsGroup.foreach((records: Mat) => {
-        metricList ++= simulate(FMat(records), keyWordMap, keyPhraseMap)
+        metricList ++= simulate(FMat(records), advertiserMap, keyPhraseMap)
       })
-
+      println("batch %d finished", i)
+      i += 1
     }
+
+    metricList
   }
 
 
@@ -56,12 +62,14 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
   def simulate(records: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : mutable.MutableList[FMat] = {
     val uniqueKeyPhraseHash = unique(records(?, 2))
-    val i = 0
+    var i = 0
     var results = mutable.MutableList[FMat]()
     while (i < uniqueKeyPhraseHash.nrows) {
-      val keyPhraseHash = uniqueKeyPhraseHash(i, ?)
-      val auction = records(?, records(?, 2) == keyPhraseHash) //get all records for this auction
+      val keyPhraseHash = uniqueKeyPhraseHash(i, ?)(0, 0)
+      val recordIndices = find(records(?, 2) == keyPhraseHash)
+      val auction = records(recordIndices, ?) //get all records for this auction
       results += simulateAuction(auction, advertiserMap, keyPhraseMap)
+      i += 1
     }
     results
   }
@@ -144,7 +152,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       return 0
     }
     // Grab the final score of the next ranking
-    val nextScore = finalScores(rank + 1)
+    val nextScore = if (rank + 1 < finalScores.size) finalScores(rank + 1) else 0
 
     val profit = invQualityFunc(nextScore, finalCTR)
 
