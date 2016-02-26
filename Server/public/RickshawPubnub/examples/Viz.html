@@ -140,12 +140,16 @@ window.alphaSlider = function() {
     document.querySelector('#curAlpha').value = document.querySelector('#alpha').value;
 
     currentAlpha = document.querySelector('#alpha').value;
+    
+    ws.send("alpha:" + currentAlpha);
 }
 
 window.betaSlider = function() {
     document.querySelector('#curBeta').value = document.querySelector('#beta').value;
 
     currentBeta = document.querySelector('#beta').value;
+    
+    ws.send("beta:" + currentBeta);
 }
 
 var palette = new Rickshaw.Color.Palette( { scheme: 'classic9' } );
@@ -163,8 +167,6 @@ var numSeries = 0;
 function initializeGraph(JSONdata) {
 
     var data = JSON.parse(JSONdata);
-
-    alert("Init Graph...")
 
     // Grab the number of series, so we can initialize the graph appropriately
     var seriesNames = []
@@ -350,22 +352,29 @@ function readJSON(JSONdata) {
     ); 
 };
 
+
+
 // For now, just send some JSON data at every iterval. Eventually, will be getting JSON 
 // data from Play server.
 var ws=new WebSocket("ws://localhost:9000/socket")
+
 ws.onmessage=function(msg){
     console.log(msg.data)
     readJSON(msg.data)
     //console.log(msg.data)
+
+
 }
 ws.onopen=function(){
     console.log("Connected")
     ws.send("I am the browser")
+
 }
 setInterval(function(){
 
   //var text = '{ "Ad1": 10, "Ad2": 15, "Ad3": 12, "Ad4": 5, "Ad5": 6, "Ad6": 7.5}';
   //readJSON(text);
+  //ws.send("I am in interval")
 
 }, 1000);
 
