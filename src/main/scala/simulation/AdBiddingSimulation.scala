@@ -3,10 +3,10 @@ package simulation
 import BIDMach.datasources.FileSource
 import BIDMat._
 import BIDMat.MatFunctions._
-import scala.collection.breakOut
-import scala.collection.mutable
+import scala.collection.{mutable, breakOut}
 import scala.collection.immutable.Map
 import scala.collection.immutable.ListMap
+import scala.collection.mutable.ListBuffer
 
 
 /**
@@ -98,7 +98,24 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
         (advertiser, getQualityScore(advertiser, keyPhrase, bid))
       }
     }
-    val ranks = getRanking(qualityScores)
+
+    /*
+    val rankList = getRankings(qualityScores)
+    val
+    rankList.foreach((ranks: Map[String, Int]) => {
+      val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
+      val profits: Map[String, Float] = ranks map {
+        case (advertiser: String, rank: Int) => {
+          (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
+        }
+      }
+
+      //TODO: could add more metrics, such as volume of ads, ads per advertiser, etc.
+      val totalProfit = profits.values.foldLeft(0.0)(_+_)
+      row(keyPhraseID, totalProfit)
+    })
+    */
+
     val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
     val profits: Map[String, Float] = ranks map {
       case (advertiser: String, rank: Int) => {
@@ -119,6 +136,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
   }
 
+  /*
   def getRanking(qualityScores: Map[String, Float]): Map[String, Int] = {
     val sorted_scores = ListMap(qualityScores.toSeq.sortWith(
       (scorePair1: (String, Float), scorePair2: (String, Float)) => scorePair1._2 > scorePair2._2):_*)
@@ -130,6 +148,34 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     }
     sorted_map.toMap
   }
+  */
+
+  /**
+    * calculate ranking for all auctions in this group of (day, keyPhrase).
+    *
+    * @param qualityScores the quality score for each advertiser.
+    * @param numAuctions number of auctions in this group.
+    * @return a list of (advertiser -> rank)
+    */
+  def getRankings(qualityScores: Map[String, Float], numAuctions: Int): List[Map[String, Int]] = {
+    val rankList: ListBuffer[mutable.MutableList[String]] = (0 until numAuctions).foreach(
+      (i: Int) => {
+        new mutable.MutableList[String]()
+      })
+
+    val sortedAdvertisers = qualityScores.toSeq.sortBy(_._2)
+    var rankListInd = 0
+    sortedAdvertisers.foreach((advertiser: String, qScore: Float) => {
+      rankList(rankListInd) += advertiser
+      rankListInd = (rankListInd + 1) % rankList.size
+    })
+
+    rankList.map((ranks: mutable.MutableList[String]) => {
+      ranks.map((advertiser: String) => advertiser -> ranks.indexOf(advertiser) + 1)
+    })
+  }
+
+
 
   def getFinalQualityScores(keyPhrase: String, ranks: Map[String, Int],
                             bids: Map[String, Float]): Map[Int, Float] = {
@@ -154,7 +200,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     // Grab the final score of the next ranking
     val nextScore = if (rank + 1 < finalScores.size) finalScores(rank + 1) else 0
 
-    val profit = invQualityFunc(nextScore, finalCTR)
+    val price = invQualityFunc(nextScore, finalCTR)
+
+    //TODO: calculate the profit = price * impression (say 1000) * the rank component of CTRModel
 
     /** IF the biding price from next bid is smaller than the reservePrice then pay bidding price
       *  O.W pay for the reservePrice
