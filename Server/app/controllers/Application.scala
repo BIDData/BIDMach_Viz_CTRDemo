@@ -10,6 +10,8 @@ import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.pattern.ask
 
+
+
 //import Engine.server
 //import BIDMat.MatFunctions._
 //import BIDMat.SciFunctions._
@@ -41,6 +43,7 @@ class Waiter() extends Actor{
 	var ec = new EngineClass();
 	println("alpha: " + ec.getAlpha());
 	println("beta: " + ec.getBeta());
+	println("reserve: " + ec.getReserve());
 	
 
 	
@@ -64,7 +67,12 @@ class Waiter() extends Actor{
                 val Array(str1, str2) = msg.split(":"); 
                 ec.changeBeta(str2.toDouble);
                 println("Now, beta is: " + ec.getBeta());
-                
+            }
+            
+            if (msg contains "reserve:"){
+                val Array(str1, str2) = msg.split(":"); 
+                ec.changeReserve(str2.toDouble);
+                println("Now, reserve is: " + ec.getReserve());
             }
             
             

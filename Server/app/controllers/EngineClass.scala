@@ -1,6 +1,7 @@
 package controllers
 
 import play.api.libs.json._
+import BIDMat.FMat
 
 class EngineClass {
 
@@ -8,6 +9,7 @@ class EngineClass {
     
     var alpha = 0.5;
     var beta = 0.1;
+    var reserve = 0.1
     
     def addInt( a:Int, b:Int ) : Int = {
         var sum:Int = 0
@@ -29,6 +31,10 @@ class EngineClass {
     def getBeta() : Double = {
         return beta
     }
+        
+    def getReserve() : Double = {
+        return reserve
+    }
     
     def changeAlpha(newAlpha:Double) : Double = {
         alpha = newAlpha
@@ -38,6 +44,11 @@ class EngineClass {
     def changeBeta(newBeta:Double) : Double = {
         beta = newBeta
         return beta
+    }
+    
+    def changeReserve(newReserve:Double) : Double = {
+        reserve = newReserve
+        return reserve
     }
     
 }

@@ -116,25 +116,45 @@
     </div>
 
 
-    <form class="valueAlphaForm" 
+    <form class="valueAlphaForm" >
         <label for="alpha">Alpha</label>
         <input type="range" min="0" max="1" value="0.5" id="alpha" step="0.01" oninput="alphaSlider()">
         <output for="alpha" id="curAlpha">0.5</output>
     </form>
 
-    <form class="valueBetaForm" 
+    <form class="valueBetaForm">
         <label for="beta">Beta</label>
         <input type="range" min="0" max="1" value="0.1" id="beta" step="0.01" oninput="betaSlider()">
         <output for="beta" id="curBeta">0.1</output>
+    </form>
+    
+    <form class="valueReserveForm">
+        <label for="reserve">Reserve</label>
+        <input type="range" min="0" max="1" value="1" id="reserve" step="0.01" oninput="reserveSlider()">
+        <output for="reserve" id="curReserve">1</output>
     </form>
 
 </div>
 
 <script>
 
+function makeid()
+{
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for( var i=0; i < 5; i++ )
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+}
+
+var channelID = makeid();
+
 // Setup sliders for squashing parameters here
 var currentAlpha = 0.5;
 var currentBeta = 0.1;
+var currentReserve = 1;
 
 window.alphaSlider = function() {
     document.querySelector('#curAlpha').value = document.querySelector('#alpha').value;
@@ -150,6 +170,14 @@ window.betaSlider = function() {
     currentBeta = document.querySelector('#beta').value;
     
     ws.send("beta:" + currentBeta);
+}
+
+window.reserveSlider = function() {
+    document.querySelector('#curReserve').value = document.querySelector('#reserve').value;
+
+    currentReserve = document.querySelector('#reserve').value;
+    
+    ws.send("reserve:" + currentReserve);
 }
 
 var palette = new Rickshaw.Color.Palette( { scheme: 'classic9' } );
@@ -206,7 +234,7 @@ function initializeGraph(JSONdata) {
     graph.render();
 
     new Rickshaw.Fixtures.PubNub({
-        channel: 'rickshaw-channel-15',
+        channel: channelID,
         // limit: 5,  // add this in to limit the number available in playback
         subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f', 
         graph: graph
@@ -343,7 +371,7 @@ function readJSON(JSONdata) {
     // Publish the current set of data
     pubnub.publish( 
         {
-            channel: 'rickshaw-channel-15',
+            channel: channelID,
             message: {
                 y: y_values,
                 x: x_axis_value
@@ -383,7 +411,7 @@ setInterval(function(){
 
 <script>
 pubnub.subscribe({
-    channel: 'rickshaw-channel-15',
+    channel: channelID,
     message: function(m){console.log(m)},
     error: function (error) {
       // Handle error here
