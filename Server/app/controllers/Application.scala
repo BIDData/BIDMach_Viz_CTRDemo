@@ -24,6 +24,7 @@ class Waiter() extends Actor{
     val system = akka.actor.ActorSystem("system");
     import system.dispatcher;
     
+    /*
     val Tick = "tick"
     val tickActor = system.actorOf(Props(new Actor {
         def receive = {
@@ -37,6 +38,7 @@ class Waiter() extends Actor{
         
     }));
     val cancellable = system.scheduler.schedule(0 milliseconds,2000 milliseconds,tickActor,Tick);
+    */
 
   
   
@@ -73,6 +75,13 @@ class Waiter() extends Actor{
                 val Array(str1, str2) = msg.split(":"); 
                 ec.changeReserve(str2.toDouble);
                 println("Now, reserve is: " + ec.getReserve());
+            }
+            
+            // For now, just grab new data every second
+            if (msg contains "Sending new data...") {
+                val metrics = ec.computeQualityScore();
+                channel.push("{ \"Ad1\":" + metrics(0) + ",\"Ad2\":" + metrics(1) + ",\"Ad3\":" + metrics(2) + ",\"Ad4\":" + metrics(3) + ",\"Ad5\":" + metrics(4) + ",\"Ad6\":" +  metrics(5) + "}"); 
+
             }
             
             
