@@ -106,7 +106,30 @@
             <h6>Smoothing</h6>
             <div id="smoother"></div>
         </section>
-        <section></section>
+        <section>
+            <div id="slider_forms">
+                <label for="alpha">Alpha </label> 
+                <input type="range" min="0" max="1" value="0.5" id="alpha" step="0.01" oninput="alphaSlider()">
+                <output for="alpha" id="curAlpha">0.5</output>
+            
+                <br>
+            
+                <label for="beta">Beta </label>
+                <input type="range" min="0" max="1" align="right" value="0.1" id="beta" step="0.01" oninput="betaSlider()">
+                <output for="beta" id="curBeta">0.1</output>
+                
+                <br>
+                
+                <label for="reserve">Reserve</label>
+                <input type="range" min="0" max="1" align="right" value="1" id="reserve" step="0.01" oninput="reserveSlider()">
+                <output for="reserve" id="curReserve">1</output>
+                
+                <br><br>
+                
+                &emsp;<input type="button" onclick="stop();" value="Pause" /> &emsp;
+                <input type="button" onclick="continueSim();" align="right" value="Continue" />
+            </div>
+        </section>
     </form>
 
     <div id="chart_container">
@@ -114,26 +137,6 @@
         <div id="timeline"></div>
         <div id="preview"></div>
     </div>
-
-
-    <form class="valueAlphaForm" >
-        <label for="alpha">Alpha</label>
-        <input type="range" min="0" max="1" value="0.5" id="alpha" step="0.01" oninput="alphaSlider()">
-        <output for="alpha" id="curAlpha">0.5</output>
-    </form>
-
-    <form class="valueBetaForm">
-        <label for="beta">Beta</label>
-        <input type="range" min="0" max="1" value="0.1" id="beta" step="0.01" oninput="betaSlider()">
-        <output for="beta" id="curBeta">0.1</output>
-    </form>
-    
-    <form class="valueReserveForm">
-        <label for="reserve">Reserve</label>
-        <input type="range" min="0" max="1" value="1" id="reserve" step="0.01" oninput="reserveSlider()">
-        <output for="reserve" id="curReserve">1</output>
-    </form>
-
 </div>
 
 <script>
@@ -160,7 +163,6 @@ window.alphaSlider = function() {
     document.querySelector('#curAlpha').value = document.querySelector('#alpha').value;
 
     currentAlpha = document.querySelector('#alpha').value;
-    
     ws.send("alpha:" + currentAlpha);
 }
 
@@ -168,7 +170,6 @@ window.betaSlider = function() {
     document.querySelector('#curBeta').value = document.querySelector('#beta').value;
 
     currentBeta = document.querySelector('#beta').value;
-    
     ws.send("beta:" + currentBeta);
 }
 
@@ -176,7 +177,6 @@ window.reserveSlider = function() {
     document.querySelector('#curReserve').value = document.querySelector('#reserve').value;
 
     currentReserve = document.querySelector('#reserve').value;
-    
     ws.send("reserve:" + currentReserve);
 }
 
@@ -396,17 +396,40 @@ ws.onmessage=function(msg){
 ws.onopen=function(){
     console.log("Connected")
     ws.send("I am the browser")
+    runSimulation();
 
 }
+
+/*
 setInterval(function(){
 
   //var text = '{ "Ad1": 10, "Ad2": 15, "Ad3": 12, "Ad4": 5, "Ad5": 6, "Ad6": 7.5}';
   //readJSON(text);
   //ws.send("I am in interval")
 
-  ws.send("Sending new data...")
+  //ws.send("Sending new data...")
 
 }, 1000);
+*/
+var playing = true;
+
+function runSimulation(){
+    if (playing){
+        //$('<span> working in the background </span> <br>').appendTo($('#foo'));
+        //alert("Hi");
+        ws.send("Sending new data...")
+        setTimeout(runSimulation, 1000);
+    }
+}
+
+function stop(){
+    playing = false;
+}
+function continueSim(){
+    playing = true;
+    runSimulation();
+}
+
 
 
 </script>

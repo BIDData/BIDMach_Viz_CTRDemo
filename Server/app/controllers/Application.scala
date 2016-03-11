@@ -10,7 +10,9 @@ import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.pattern.ask
 
-
+import BIDMat._
+import BIDMat.MatFunctions._
+import BIDMat.SciFunctions._
 
 //import Engine.server
 //import BIDMat.MatFunctions._
@@ -47,6 +49,25 @@ class Waiter() extends Actor{
 	println("beta: " + ec.getBeta());
 	println("reserve: " + ec.getReserve());
 	
+	var result:FMat = ec.runFMat();
+	println("results: " + result);
+	println("size cols: " + result.ncols);
+	println("size rows: " + result.nrows);
+	println("2,2 rows: " + result(2,2));
+
+	//println("sum: " + maxi(result));
+		
+	Mat.checkMKL
+	//val v = cumsum(result)
+	//println("unique: " + v);
+	
+	//val diag = BIDMat.GMat(1 on 2 on 3)
+	
+	
+	
+	
+	
+	
 
 	
   	def receive ={
@@ -80,7 +101,20 @@ class Waiter() extends Actor{
             // For now, just grab new data every second
             if (msg contains "Sending new data...") {
                 val metrics = ec.computeQualityScore();
-                channel.push("{ \"Ad1\":" + metrics(0) + ",\"Ad2\":" + metrics(1) + ",\"Ad3\":" + metrics(2) + ",\"Ad4\":" + metrics(3) + ",\"Ad5\":" + metrics(4) + ",\"Ad6\":" +  metrics(5) + "}"); 
+                
+                //println("Metrics len: " + metrics.length);
+                 
+                var jsonData = Json.obj();
+                var i = 0;
+                for (i <- 0 until metrics.length) {
+                    jsonData += ("Ad" + i -> Json.toJson(metrics(i)))
+                }
+                println("JSON data: " + jsonData);
+                //for (int i=0; i < metrics.length; i++) {
+                //    println("metric " + i + " :" + metrics[i]);
+                //}
+                channel.push(Json.stringify(jsonData));
+                //channel.push("{ \"Ad1\":" + metrics(0) + ",\"Ad2\":" + metrics(1) + ",\"Ad3\":" + metrics(2) + ",\"Ad4\":" + metrics(3) + ",\"Ad5\":" + metrics(4) + ",\"Ad6\":" +  metrics(5) + "}"); 
 
             }
             
