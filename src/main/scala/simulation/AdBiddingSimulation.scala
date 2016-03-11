@@ -34,6 +34,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     source = FileSource.apply(dataPath + "%d.fmat")
     source.opts.nend = 1 //need to change
     source.opts.dorows=true
+    source.opts.batchSize=10000
     source.init
     var metricList = mutable.MutableList[FMat]()
 
@@ -43,7 +44,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       recordsGroup.foreach((records: Mat) => {
         metricList ++= simulate(FMat(records), advertiserMap, keyPhraseMap)
       })
-      println("batch %d finished", i)
       i += 1
     }
 
@@ -68,10 +68,15 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       val keyPhraseHash = uniqueKeyPhraseHash(i, ?)(0, 0)
       val recordIndices = find(records(?, 2) == keyPhraseHash)
       val group = records(recordIndices, ?) //get all records for this auction
+      if (BIDMat.SciFunctions.sum(group)(0, 0) == 0) {
+        println("found group")
+      }
       results ++= simulateAuction(group, advertiserMap, keyPhraseMap)
       i += 1
     }
+    println(results.toString)
     results
+
   }
 
 
@@ -86,11 +91,14 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     */
 
   def simulateAuction(group: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : List[FMat] = {
-    val keyPhraseID = group(0, 2).toInt //TODO: find which column is the keyPhraseID
+    val keyPhraseID = group(0, 2).toInt - 1 //TODO: find which column is the keyPhraseID
+    if (keyPhraseID == -1) {
+      println(keyPhraseID)
+    }
     val keyPhrase = keyPhraseMap(keyPhraseID)
 
     val bidList = group(?, 3).data.toList
-    val advertiserList = group(?, 1).data.toList.map((id: Float) => advertiserMap(id.toInt))
+    val advertiserList = group(?, 1).data.toList.map((id: Float) => advertiserMap(id.toInt-1))
     val bids: Map[String, Float] = advertiserList.zip(bidList)(breakOut)
 
     val qualityScores = bids map {
@@ -99,7 +107,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       }
     }
 
-    val numAuction = unique(group(0, 4)).nnz
+    val rankCounts = group(?, 4).data.groupBy(x => x).map(x => (x._1, x._2.length))
+    val numAuction = rankCounts.valuesIterator.max
     val rankList = getRankings(qualityScores, numAuction)
     val profitMatrices = rankList.map((ranks: Map[String, Int]) => {
       val auctionId = AdBiddingSimulation.generateAuctionId()
@@ -178,6 +187,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
                             bids: Map[String, Float]): Map[Int, Float] = {
     ranks map {
       case (advertiser: String, rank: Int) => {
+        if (rank > 351) {
+          println("rank is bigger than 351!")
+        }
         val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
         (rank, qualityFunc(finalCTR, bids(advertiser)))
       }

@@ -18,20 +18,22 @@ class CTRModel(adMap: SBMat, kwMap: SBMat, adKwMap: IMat, posComponent: FMat, ad
 
   /** Convert the mapping matrix into BIDMat Dict so that we can use ad/keyphrase to get their index. */
   /** Beware: The index in adKwMap is 1-indexed, while the matrix is 0-indexed. */
-  val adDict = new Dict(adMap.toCSMat)
-  val kwDict = new Dict(kwMap.toCSMat)
+  val adDict = Dict(adMap)
+  val kwDict = Dict(kwMap)
   var adKwCSMat = CSMat(adKwMap.nrows, 1)
   var i = 0
   while (i < adKwMap.nrows) {
     adKwCSMat(i, 0) = adKwMap(i, ?).toString
     i += 1
   }
-  val adKwDict = new Dict(adKwCSMat)
+  val adKwDict = Dict(adKwCSMat)
 
 
   def getCTR(rank: Int, ad: String, kw: String): Float = {
-
-    val ad_kw = row(adDict(ad), kwDict(kw))
+    val ad_kw = row(adDict(ad)+1, kwDict(kw)+1)
+    if (adKwDict(ad_kw.toString()) == -1) {
+      println(ad_kw.toString, ad, kw)
+    }
     posComponent(0, rank-1) * adKwComponent(0, adKwDict(ad_kw.toString))
   }
 
