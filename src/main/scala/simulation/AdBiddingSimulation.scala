@@ -32,8 +32,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     */
   def run(): mutable.MutableList[FMat] = {
     source = FileSource.apply(dataPath + "%d.fmat")
-    source.opts.nend = 1 //need to change
-    source.opts.dorows=true
+    source.opts.nend = 2 //need to change
+    source.opts.dorows = true
     source.opts.batchSize=10000
     source.init
     var metricList = mutable.MutableList[FMat]()
@@ -46,7 +46,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       })
       i += 1
     }
-
     metricList
   }
 
@@ -68,15 +67,10 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       val keyPhraseHash = uniqueKeyPhraseHash(i, ?)(0, 0)
       val recordIndices = find(records(?, 2) == keyPhraseHash)
       val group = records(recordIndices, ?) //get all records for this auction
-      if (BIDMat.SciFunctions.sum(group)(0, 0) == 0) {
-        println("found group")
-      }
       results ++= simulateAuction(group, advertiserMap, keyPhraseMap)
       i += 1
     }
-    println(results.toString)
     results
-
   }
 
 
@@ -92,9 +86,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
   def simulateAuction(group: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : List[FMat] = {
     val keyPhraseID = group(0, 2).toInt - 1 //TODO: find which column is the keyPhraseID
-    if (keyPhraseID == -1) {
-      println(keyPhraseID)
-    }
     val keyPhrase = keyPhraseMap(keyPhraseID)
 
     val bidList = group(?, 3).data.toList
@@ -110,28 +101,26 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     val rankCounts = group(?, 4).data.groupBy(x => x).map(x => (x._1, x._2.length))
     val numAuction = rankCounts.valuesIterator.max
     val rankList = getRankings(qualityScores, numAuction)
-    val profitMatrices = rankList.map((ranks: Map[String, Int]) => {
+
+    val profitMatrices = new mutable.ListBuffer[FMat]
+
+    rankList.foreach((ranks: Map[String, Int]) => {
       val auctionId = AdBiddingSimulation.generateAuctionId()
       val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
-      val profits: Map[String, Float] = ranks map {
+      ranks.foreach {
         case (advertiser: String, rank: Int) => {
-          (advertiser, calculateProfit(finalQuality, keyPhrase, advertiser, rank))
+          val profit = calculateProfit(finalQuality, keyPhrase, advertiser, rank)
+          val profitMatrix:FMat = FMat(zeros(1, 3))
+          profitMatrix(0, 0) = auctionId.toFloat
+          profitMatrix(0, 1) = advertiserMap(advertiser)
+          profitMatrix(0, 2) = profit
+          profitMatrices += profitMatrix
         }
       }
 
       //TODO: could add more metrics, such as volume of ads, ads per advertiser, etc.
-      val profitMatrix:FMat = FMat(zeros(profits.size, 3))
-      profitMatrix(?, 0) = auctionId.toFloat
-      val profitsList = profits.toList
-      (0 until profits.size).foreach((i: Int) => {
-        profitMatrix(i, 1) = advertiserMap(profitsList(i)._1)
-        profitMatrix(i, 2) = profitsList(i)._2
-      })
-
-      profitMatrix
     })
-    profitMatrices
-
+    profitMatrices.toList
   }
 
 
@@ -139,7 +128,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   def getQualityScore(advertiser: String, keyPhrase: String, bid: Float): Float = {
     val myCTR:Float = adModel.getCTR(1, advertiser, keyPhrase)
     qualityFunc(myCTR, bid)
-
   }
 
   /*
@@ -187,9 +175,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
                             bids: Map[String, Float]): Map[Int, Float] = {
     ranks map {
       case (advertiser: String, rank: Int) => {
-        if (rank > 351) {
-          println("rank is bigger than 351!")
-        }
         val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
         (rank, qualityFunc(finalCTR, bids(advertiser)))
       }
@@ -240,11 +225,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
 }
 
-
-
 object AdBiddingSimulation {
 
-  private var auctionIdgen: Long = 0L;
+  private var auctionIdgen: Long = 0L
 
   def generateAuctionId(): Long = {
     auctionIdgen += 1
