@@ -142,14 +142,11 @@ class Application extends Controller {
   //println(System.getProperty("java.library.path"))
   //server.init(system,waiter)
 
-
-  val modelPath = "/Users/jianqiao/workspace/BIDMach_Viz/Server/app/controllers/model/"
-  val dataPath = "/Users/jianqiao/workspace/BIDMach_Viz/Server/app/controllers/stream/"
-
-  //val modelPath = "/model/"
-  //val dataPath = "/Users/rcasey/Desktop/BIDMach_Viz/Server/app/controllers/stream/"
-  //String projectRoot = Play.application.path;
-  //println("root: " + projectRoot);
+  // grab the path to the application, so we can read the model/data files
+  val applicationPath = play.Play.application().path().getAbsolutePath()
+  
+  val modelPath = applicationPath + "/app/controllers/model/"
+  val dataPath = applicationPath + "/app/controllers/stream/"
 
 
   //initialize model
