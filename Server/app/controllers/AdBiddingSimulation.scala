@@ -227,6 +227,30 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     alpha = newAlpha
     beta = newBeta
   }
+  
+  def getAlpha() : Float = {
+    return alpha
+  }
+  
+  def updateAlpha(newAlpha: Float) = {
+    alpha = newAlpha
+  }
+  
+  def getBeta() : Float = {
+    return beta
+  }
+  
+  def updateBeta(newBeta: Float) = {
+    beta = newBeta
+  }
+  
+  def getReserve() : Float = {
+    return reservePrice
+  }
+  
+  def updateReserve(newReserve: Float) = {
+    reservePrice = newReserve
+  }
 
 
   def qualityFunc(CTR: Float, bid: Float): Float = {

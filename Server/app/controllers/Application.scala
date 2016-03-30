@@ -25,6 +25,7 @@ class Waiter() extends Actor {
   var channel: Concurrent.Channel[String] = null
 
   val system = akka.actor.ActorSystem("system")
+  var simulation: AdBiddingSimulation = null
 
   import system.dispatcher
 
@@ -96,9 +97,10 @@ class Waiter() extends Actor {
   val keyWordMap = Dict(keyWords)
   val keyPhrasesMap = Dict(keyPhrases)
 
-  val simulation = new AdBiddingSimulation(ctrModel, ctrModel,
+  simulation = new AdBiddingSimulation(ctrModel, ctrModel,
     alpha, beta, reservePrice, dataPath,
     advertiserMap, keyPhrasesMap, keyWordMap)
+  println("Done creating Simulation")
 
 
 
@@ -114,45 +116,58 @@ class Waiter() extends Actor {
 
       if (msg contains "alpha:") {
         val Array(str1, str2) = msg.split(":");
-        //ec.changeAlpha(str2.toDouble);
-        //println("Now, alpha is: " + ec.getAlpha());
+        if (simulation != null) {
+            simulation.updateAlpha(str2.toFloat);
+            println("Now, alpha is: " + simulation.getAlpha());
+            
+        }
       }
 
       if (msg contains "beta:") {
         val Array(str1, str2) = msg.split(":");
-        //ec.changeBeta(str2.toDouble);
-        //println("Now, beta is: " + ec.getBeta());
+        
+        if (simulation != null) {
+            simulation.updateBeta(str2.toFloat);
+            println("Now, beta is: " + simulation.getBeta());
+            
+        }
       }
 
       if (msg contains "reserve:") {
         val Array(str1, str2) = msg.split(":");
-        // ec.changeReserve(str2.toDouble);
-        //println("Now, reserve is: " + ec.getReserve());
+
+        if (simulation != null) {
+            simulation.updateReserve(str2.toFloat);
+            println("Now, reserve is: " + simulation.getReserve());
+            
+        }
       }
 
       // For now, just grab new data every second
       if (msg contains "Sending new data...") {
           
-          val metricList = simulation.runBatch()
-
-          println("batch complete: ")
-          println(metricList.size)
-          var total_profit:Float = 0
+        if (simulation != null) {
+            val metricList = simulation.runBatch()
+            println("batch complete: ")
+            println(metricList.size)
+            var total_profit:Float = 0
+            
+            metricList.foreach((record: FMat) => {
+                val profit = record(2)
+                total_profit = total_profit + profit.toFloat
+            })
+            println("Total sum: " + total_profit)
           
-          metricList.foreach((record: FMat) => {
-            val profit = record(2)
-            total_profit = total_profit + profit.toFloat
-          })
-          println("Total sum: " + total_profit)
-          
-        var jsonData = Json.obj();
-        jsonData += ("Total Profit" -> Json.toJson(total_profit))
-        
+            var jsonData = Json.obj();
+            jsonData += ("Total Profit" -> Json.toJson(total_profit))
+            channel.push(Json.stringify(jsonData));
+        } else {
+          println("Waiting for simulation setup")
+        }
         
         /*
         //val metrics = ec.computeQualityScore();
         val metrics = List(1, 2, 3, 4, 5, 6);
-
 
         var jsonData = Json.obj();
         var i = 0;
@@ -164,8 +179,6 @@ class Waiter() extends Actor {
         //    println("metric " + i + " :" + metrics[i]);
         //}
         */
-        channel.push(Json.stringify(jsonData));
-        //channel.push("{ \"Ad1\":" + metrics(0) + ",\"Ad2\":" + metrics(1) + ",\"Ad3\":" + metrics(2) + ",\"Ad4\":" + metrics(3) + ",\"Ad5\":" + metrics(4) + ",\"Ad6\":" +  metrics(5) + "}");
 
       }
 
