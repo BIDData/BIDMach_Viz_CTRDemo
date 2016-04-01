@@ -134,6 +134,7 @@ class Waiter() extends Actor {
             println(metricList.size)
             var total_profit:Float = 0
             var total_clicks:Float = 0
+            var total_bids:Float = 0
             
             metricList.foreach((record: FMat) => {
                 val profit = record(2)
@@ -141,16 +142,21 @@ class Waiter() extends Actor {
                 
                 val clicks = record(3)
                 total_clicks = total_clicks + clicks.toFloat
+                
+                val bid = record(4)
+                total_bids = total_bids + bid.toFloat
             })
             
             var average_bid:Float = total_profit / metricList.size
-            println("Total sum: " + total_profit)
+            println("Total profit: " + total_profit)
             //println("Average bid: " + average_bid)
             println("Total clicks: " + total_clicks)
+            println("Total bids: " + total_bids)
           
             var jsonData = Json.obj();
             jsonData += ("Total Profit" -> Json.toJson(total_profit))
             jsonData += ("Total Clicks" -> Json.toJson(total_clicks * 100))
+            jsonData += ("Total Bids" -> Json.toJson(total_bids * 10))
             //jsonData += ("Average Bid" -> Json.toJson(average_bid))
             channel.push(Json.stringify(jsonData));
             
