@@ -58,7 +58,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       source = FileSource.apply(dataPath + "%d.fmat")
       source.opts.nend = 1 //need to change
       source.opts.dorows = true
-      source.opts.batchSize = 10000
+      source.opts.batchSize = 100000
       source.init
     }
     val records = source.next(0)

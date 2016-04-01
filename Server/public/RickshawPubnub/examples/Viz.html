@@ -205,6 +205,7 @@ function initializeGraph(JSONdata) {
             numSeries = numSeries + 1;
         }
     }
+    
 
     // The x-axis is the current time
     var xInit = Math.floor(new Date().getTime() / 1000);
@@ -350,13 +351,14 @@ function initializeGraph(JSONdata) {
 // Ex. '{ "Ad1": 10, "Ad2": 15, "Ad3": 12}'
 function readJSON(JSONdata) {
 
+    var x_axis_value = Math.floor(new Date().getTime() / 1000);
+    
     // If this is the first set of time series data, we need to create the graph.
     if (graphCreated == 0) {
         initializeGraph(JSONdata);
     }
 
     // The x axis is the current time
-    var x_axis_value = Math.floor(new Date().getTime() / 1000);
 
     // Extract the JSON values here
     var data = JSON.parse(JSONdata);
@@ -368,6 +370,7 @@ function readJSON(JSONdata) {
         }
     }
 
+
     // Publish the current set of data
     pubnub.publish( 
         {
@@ -378,6 +381,8 @@ function readJSON(JSONdata) {
             }
         }
     ); 
+    
+    ws.send("Sending new data...")
 };
 
 
@@ -418,7 +423,7 @@ function runSimulation(){
         //$('<span> working in the background </span> <br>').appendTo($('#foo'));
         //alert("Hi");
         ws.send("Sending new data...")
-        setTimeout(runSimulation, 3000);
+        //setTimeout(runSimulation, 1000);
     }
 }
 

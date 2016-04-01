@@ -46,30 +46,9 @@ class Waiter() extends Actor {
   */
 
 
-  /*
-    var ec = new EngineClass();
-    println("alpha: " + ec.getAlpha());
-    println("beta: " + ec.getBeta());
-    println("reserve: " + ec.getReserve());
-    
-    var result:FMat = ec.runFMat();
-    println("results: " + result);
-    println("size cols: " + result.ncols);
-    println("size rows: " + result.nrows);
-    println("2,2 rows: " + result(2,2));
-    
-    println("sum: " + maxi(result));
-    */
 
-
-  //Mat.checkMKL
-
-  //val v = cumsum(result)
-  //println("unique: " + v);
-
-  //val diag = BIDMat.GMat(1 on 2 on 3)
   
-    // grab the path to the application, so we can read the model/data files
+  // grab the path to the application, so we can read the model/data files
   val applicationPath = play.Play.application().path().getAbsolutePath()
   val modelPath = applicationPath + "/app/controllers/model/"
   val dataPath = applicationPath + "/app/controllers/stream/"
@@ -96,12 +75,13 @@ class Waiter() extends Actor {
   val advertiserMap = Dict(adMap)
   val keyWordMap = Dict(keyWords)
   val keyPhrasesMap = Dict(keyPhrases)
+  
 
   simulation = new AdBiddingSimulation(ctrModel, ctrModel,
     alpha, beta, reservePrice, dataPath,
     advertiserMap, keyPhrasesMap, keyWordMap)
   println("Done creating Simulation")
-
+  var batch_number = 1;
 
 
   def receive = {
@@ -143,12 +123,12 @@ class Waiter() extends Actor {
         }
       }
 
-      // For now, just grab new data every second
+      // Grab new data
       if (msg contains "Sending new data...") {
           
         if (simulation != null) {
             val metricList = simulation.runBatch()
-            println("batch complete: ")
+            println("batch complete: " + batch_number)
             println(metricList.size)
             var total_profit:Float = 0
             
@@ -156,11 +136,17 @@ class Waiter() extends Actor {
                 val profit = record(2)
                 total_profit = total_profit + profit.toFloat
             })
+            
+            var average_bid:Float = total_profit / metricList.size
             println("Total sum: " + total_profit)
+            println("Average bid: " + average_bid)
           
             var jsonData = Json.obj();
             jsonData += ("Total Profit" -> Json.toJson(total_profit))
+            jsonData += ("Average Bid" -> Json.toJson(average_bid))
             channel.push(Json.stringify(jsonData));
+            
+            batch_number = batch_number + 1
         } else {
           println("Waiting for simulation setup")
         }
@@ -203,6 +189,7 @@ class Application extends Controller {
   println("Running")
   val system = ActorSystem("BIDDemo");
   val waiter = system.actorOf(Props(classOf[Waiter]), "server");
+  
   //println(System.getProperty("java.library.path"))
   //server.init(system,waiter)
 
@@ -255,26 +242,10 @@ class Application extends Controller {
       val in = Iteratee.foreach[String] {
         msg =>
           println("From browser: " + msg)
-          //channel.push("{ 'Ad1': 10, 'Ad2': 15, 'Ad3': 12, 'Ad4': 5, 'Ad5': 6, 'Ad6': 7.5}")
-          //channel.push("{ \"Ad1\": 10,  \"Ad2\": 10,  \"Ad3\": 10,  \"Ad4\": 10,  \"Ad5\": 10,  \"Ad6\": 10}")
 
           //server.changePara(msg)
           waiter !("browser", msg)
           
-          
-          /*
-          val metricList = simulation.runBatch()
-
-          println("batch complete: ")
-          println(metricList.size)
-          var total_profit:Float = 0
-          
-          metricList.foreach((record: FMat) => {
-            val profit = record(2)
-            total_profit = total_profit + profit.toFloat
-          })
-          println("Total sum: " + total_profit)
-          */
 
         //the channel will push to the Enumerator
         //val worker = system.actorOf(Props(classOf[Worker],waiter,channel));
@@ -282,17 +253,5 @@ class Application extends Controller {
       }
       (in, out)
   }
-
-  /*
-  for (i <- 0 to 50) {
-    val metricList = simulation.runBatch()
-
-    println("batch " + i.toString)
-    println(metricList.size)
-    println(metricList(0))
-  }
-
-  println("Done Simulation")
-  */
-  
+ 
 }
