@@ -115,19 +115,21 @@
                 <br>
             
                 <label for="beta">Beta </label>
-                <input type="range" min="0" max="1" align="right" value="0.1" id="beta" step="0.01" oninput="betaSlider()">
-                <output for="beta" id="curBeta">0.1</output>
+                <input type="range" min="0" max="1" align="right" value="0.5" id="beta" step="0.01" oninput="betaSlider()">
+                <output for="beta" id="curBeta">0.5</output>
                 
                 <br>
                 
                 <label for="reserve">Reserve</label>
-                <input type="range" min="0" max="1" align="right" value="1" id="reserve" step="0.01" oninput="reserveSlider()">
-                <output for="reserve" id="curReserve">1</output>
+                <input type="range" min="0" max="10" align="right" value="4" id="reserve" step="0.1" oninput="reserveSlider()">
+                <output for="reserve" id="curReserve">4</output>
                 
                 <br><br>
                 
+                <!-- 
                 &emsp;<input type="button" onclick="stop();" value="Pause" /> &emsp;
                 <input type="button" onclick="continueSim();" align="right" value="Continue" />
+                -->
             </div>
         </section>
     </form>
@@ -156,8 +158,8 @@ var channelID = makeid();
 
 // Setup sliders for squashing parameters here
 var currentAlpha = 0.5;
-var currentBeta = 0.1;
-var currentReserve = 1;
+var currentBeta = 0.5;
+var currentReserve = 4.0;
 
 window.alphaSlider = function() {
     document.querySelector('#curAlpha').value = document.querySelector('#alpha').value;
@@ -401,7 +403,8 @@ ws.onmessage=function(msg){
 ws.onopen=function(){
     console.log("Connected")
     ws.send("I am the browser")
-    runSimulation();
+    ws.send("Sending new data...")
+    //runSimulation();
 
 }
 
@@ -418,6 +421,7 @@ setInterval(function(){
 */
 var playing = true;
 
+/*
 function runSimulation(){
     if (playing){
         //$('<span> working in the background </span> <br>').appendTo($('#foo'));
@@ -434,6 +438,7 @@ function continueSim(){
     playing = true;
     runSimulation();
 }
+*/
 
 
 
