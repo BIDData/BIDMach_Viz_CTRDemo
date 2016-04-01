@@ -20,12 +20,13 @@ import scala.collection.mutable.ListBuffer
 
 class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
                           var alpha: Float, var beta: Float, var reservePrice: Float,
+                          val numSlots: Int,
                           dataPath: String,
                           advertiserMap: Dict, keyPhraseMap: Dict, keyWordMap: Dict) {
 
 
   var source: FileSource = null
-
+  val IMPRESSION = 1000
 
   /**
     * start the simulation cycle.
@@ -51,6 +52,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
   /**
     * run the simulation cycle for a batch.
+    *
     * @return
     */
   def runBatch(): mutable.MutableList[FMat] = {
@@ -94,7 +96,6 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     * @param group an FMat containing the bidding records.
     * @param advertiserMap a BIDMat Dict between advertiser strings and their integer id in data.
     * @param keyPhraseMap a BIDMat Dict between key phrase strings and their integer id in data.
-
     * @return a BIDMach FMat containing (keyPhrase ID, total profit).
     */
 
@@ -126,11 +127,19 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
       ranks.foreach {
         case (advertiser: String, rank: Int) => {
-          val profit = calculateProfit(finalQuality, keyPhrase, advertiser, rank)
-          val profitMatrix:FMat = FMat(zeros(1, 3))
+          val profitMatrix:FMat = FMat(zeros(1, 4))
           profitMatrix(0, 0) = auctionId.toFloat
           profitMatrix(0, 1) = advertiserMap(advertiser)
-          profitMatrix(0, 2) = profit
+          //metric 1: profit per auction per advertiser
+          if (rank <= numSlots) {
+            val profit = calculateProfit(finalQuality, keyPhrase, advertiser, rank)
+            profitMatrix(0, 2) = profit
+            //metric 2: number of clicks estimated for advertiser in this auction
+            profitMatrix(0, 3) = IMPRESSION * userModel.getCTR(rank, advertiser, keyPhrase)
+          } else {
+            profitMatrix(0, 2) = 0
+            profitMatrix(0, 3) = 0
+          }
           profitMatrices += profitMatrix
         }
       }
@@ -218,7 +227,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       price = reservePrice
     }
 
-    price * 1000 * adModel.getRankingCTR(rank)
+    //TODO: should we only use the rank component here, or the full CTR?
+    price * 1000 * userModel.getCTR(rank, advertiser, keyPhrase)
   }
 
 
@@ -250,6 +260,14 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   
   def updateReserve(newReserve: Float) = {
     reservePrice = newReserve
+  }
+
+  def getField(fieldName: String): Any = {
+    this.getClass.getMethods.find(_.getName == fieldName).get.invoke(this)
+  }
+
+  def setField(fieldName: String, value: Any): Unit = {
+    this.getClass.getMethods.find(_.getName == (fieldName + "_$eq")).get.invoke(this, value.asInstanceOf[AnyRef])
   }
 
 

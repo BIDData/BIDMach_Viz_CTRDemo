@@ -41,8 +41,10 @@ object SimulationMain {
     val keyWordMap = Dict(keyWords)
     val keyPhrasesMap = Dict(keyPhrases)
 
+    val numSlots = 10
+
     simulation = new AdBiddingSimulation(ctrModel, ctrModel,
-      alpha, beta, reservePrice, dataPath,
+      alpha, beta, reservePrice, numSlots, dataPath,
       advertiserMap, keyPhrasesMap, keyWordMap)
 
     
