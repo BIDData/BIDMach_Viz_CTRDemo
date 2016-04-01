@@ -99,8 +99,8 @@ class Waiter() extends Actor {
       if (msg contains "alpha:") {
         val Array(str1, str2) = msg.split(":");
         if (simulation != null) {
-            simulation.updateAlpha(str2.toFloat);
-            println("Now, alpha is: " + simulation.getAlpha());
+            simulation.setField("alpha", str2.toFloat);
+            println("Now, alpha is: " + simulation.getField("alpha"));
             
         }
       }
@@ -109,8 +109,8 @@ class Waiter() extends Actor {
         val Array(str1, str2) = msg.split(":");
         
         if (simulation != null) {
-            simulation.updateBeta(str2.toFloat);
-            println("Now, beta is: " + simulation.getBeta());
+            simulation.setField("beta", str2.toFloat);
+            println("Now, beta is: " + simulation.getField("beta"));
             
         }
       }
@@ -119,8 +119,8 @@ class Waiter() extends Actor {
         val Array(str1, str2) = msg.split(":");
 
         if (simulation != null) {
-            simulation.updateReserve(str2.toFloat);
-            println("Now, reserve is: " + simulation.getReserve());
+            simulation.setField("reservePrice", str2.toFloat);
+            println("Now, reserve is: " + simulation.getField("reservePrice"));
             
         }
       }
@@ -133,19 +133,25 @@ class Waiter() extends Actor {
             println("batch complete: " + batch_number)
             println(metricList.size)
             var total_profit:Float = 0
+            var total_clicks:Float = 0
             
             metricList.foreach((record: FMat) => {
                 val profit = record(2)
                 total_profit = total_profit + profit.toFloat
+                
+                val clicks = record(3)
+                total_clicks = total_clicks + clicks.toFloat
             })
             
             var average_bid:Float = total_profit / metricList.size
             println("Total sum: " + total_profit)
-            println("Average bid: " + average_bid)
+            //println("Average bid: " + average_bid)
+            println("Total clicks: " + total_clicks)
           
             var jsonData = Json.obj();
             jsonData += ("Total Profit" -> Json.toJson(total_profit))
-            jsonData += ("Average Bid" -> Json.toJson(average_bid))
+            jsonData += ("Total Clicks" -> Json.toJson(total_clicks * 100))
+            //jsonData += ("Average Bid" -> Json.toJson(average_bid))
             channel.push(Json.stringify(jsonData));
             
             batch_number = batch_number + 1
