@@ -137,11 +137,12 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
             profitMatrix(0, 2) = profit
             //metric 2: number of clicks estimated for advertiser in this auction
             profitMatrix(0, 3) = IMPRESSION * userModel.getCTR(rank, advertiser, keyPhrase)
+            profitMatrix(0, 4) = curr_bid
           } else {
             profitMatrix(0, 2) = 0
             profitMatrix(0, 3) = 0
+            profitMatrix(0, 4) = 0
           }
-          profitMatrix(0, 4) = curr_bid
           profitMatrices += profitMatrix
         }
       }
