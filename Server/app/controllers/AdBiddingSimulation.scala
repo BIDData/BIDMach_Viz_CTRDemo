@@ -27,6 +27,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
   var source: FileSource = null
   val IMPRESSION = 1000
+  var curr_bid = 0.0
 
   /**
     * start the simulation cycle.
@@ -127,7 +128,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
       ranks.foreach {
         case (advertiser: String, rank: Int) => {
-          val profitMatrix:FMat = FMat(zeros(1, 4))
+          val profitMatrix:FMat = FMat(zeros(1, 5))
           profitMatrix(0, 0) = auctionId.toFloat
           profitMatrix(0, 1) = advertiserMap(advertiser)
           //metric 1: profit per auction per advertiser
@@ -140,6 +141,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
             profitMatrix(0, 2) = 0
             profitMatrix(0, 3) = 0
           }
+          profitMatrix(0, 4) = curr_bid
           profitMatrices += profitMatrix
         }
       }
@@ -210,9 +212,13 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
 
     // calculate the biding price for rank
-    val curr_bid = invQualityFunc(finalScores(rank), finalCTR)
+
+    curr_bid = invQualityFunc(finalScores(rank), finalCTR)
 
     if (reservePrice > curr_bid) {
+      // when biding price bellow reservePrice we will abort the bids, set to 0 here is help to keep track biding price
+      // in the auction
+      curr_bid = 0.0
       return 0
     }
     // Grab the final score of the next ranking
