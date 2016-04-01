@@ -32,9 +32,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     */
   def run(): mutable.MutableList[FMat] = {
     source = FileSource.apply(dataPath + "%d.fmat")
-    source.opts.nend = 2 //need to change
+    source.opts.nend = 1 //need to change
     source.opts.dorows = true
-    source.opts.batchSize=10000
+    source.opts.batchSize = 10000
     source.init
     var metricList = mutable.MutableList[FMat]()
 
@@ -49,6 +49,21 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     metricList
   }
 
+  /**
+    * run the simulation cycle for a batch.
+    * @return
+    */
+  def runBatch(): mutable.MutableList[FMat] = {
+    if (source == null || (!source.hasNext)) {
+      source = FileSource.apply(dataPath + "%d.fmat")
+      source.opts.nend = 1 //need to change
+      source.opts.dorows = true
+      source.opts.batchSize = 10000
+      source.init
+    }
+    val records = source.next(0)
+    simulate(FMat(records), advertiserMap, keyPhraseMap)
+  }
 
   /**
     * simulate ad auctions on a batch of records.
@@ -73,9 +88,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     results
   }
 
-
   /**
-    * simulate auctions in a group.
+    * simulate auctions in a day-query group.
     *
     * @param group an FMat containing the bidding records.
     * @param advertiserMap a BIDMat Dict between advertiser strings and their integer id in data.
@@ -102,6 +116,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     val numAuction = rankCounts.valuesIterator.max
     val rankList = getRankings(qualityScores, numAuction)
 
+
+    /** rankMatrices */
+
     val profitMatrices = new mutable.ListBuffer[FMat]
 
     rankList.foreach((ranks: Map[String, Int]) => {
@@ -117,12 +134,10 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
           profitMatrices += profitMatrix
         }
       }
-
       //TODO: could add more metrics, such as volume of ads, ads per advertiser, etc.
     })
     profitMatrices.toList
   }
-
 
 
   def getQualityScore(advertiser: String, keyPhrase: String, bid: Float): Float = {
@@ -211,6 +226,30 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   def updateParams(newAlpha: Float, newBeta: Float) = {
     alpha = newAlpha
     beta = newBeta
+  }
+  
+  def getAlpha() : Float = {
+    return alpha
+  }
+  
+  def updateAlpha(newAlpha: Float) = {
+    alpha = newAlpha
+  }
+  
+  def getBeta() : Float = {
+    return beta
+  }
+  
+  def updateBeta(newBeta: Float) = {
+    beta = newBeta
+  }
+  
+  def getReserve() : Float = {
+    return reservePrice
+  }
+  
+  def updateReserve(newReserve: Float) = {
+    reservePrice = newReserve
   }
 
 
