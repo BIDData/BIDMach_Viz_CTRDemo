@@ -7,6 +7,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
 import akka.actor.{Actor, Props, ActorSystem, ActorRef}
 import scala.concurrent.duration._
+import scala.collection._
 import akka.util.Timeout
 import akka.pattern.ask
 
@@ -69,13 +70,16 @@ class Waiter() extends Actor {
   val alpha = 0.5f
   val beta = 0.5f
   val reservePrice = 4.0f
+  
+  // OPTION: this determines whether we plot advertiser's stats, or aggregate
+  var plotAdvertisers = 1
+  var advertisers = List(99, 1455, 5)
 
   val keyWords = loadSBMat(dataPath + "keywords.sbmat")
 
   val advertiserMap = Dict(adMap)
   val keyWordMap = Dict(keyWords)
   val keyPhrasesMap = Dict(keyPhrases)
-  
 
   val numSlots = 10
 
@@ -132,33 +136,77 @@ class Waiter() extends Actor {
             val metricList = simulation.runBatch()
             println("batch complete: " + batch_number)
             println(metricList.size)
-            var total_profit:Float = 0
-            var total_clicks:Float = 0
-            var total_bids:Float = 0
             
-            metricList.foreach((record: FMat) => {
-                val profit = record(2)
-                total_profit = total_profit + profit.toFloat
-                
-                val clicks = record(3)
-                total_clicks = total_clicks + clicks.toFloat
-                
-                val bid = record(4)
-                total_bids = total_bids + bid.toFloat
-            })
+            // 99
             
-            var average_bid:Float = total_profit / metricList.size
-            println("Total profit: " + total_profit)
-            //println("Average bid: " + average_bid)
-            println("Total clicks: " + total_clicks)
-            println("Total bids: " + total_bids)
-          
-            var jsonData = Json.obj();
-            jsonData += ("Total Profit" -> Json.toJson(total_profit))
-            jsonData += ("Total Clicks" -> Json.toJson(total_clicks * 100))
-            jsonData += ("Total Bids" -> Json.toJson(total_bids * 10))
-            //jsonData += ("Average Bid" -> Json.toJson(average_bid))
-            channel.push(Json.stringify(jsonData));
+            if (plotAdvertisers == 1) {
+                
+                println(advertisers.size)
+                
+                val profitList = List.fill(advertisers.size)(0)
+                
+                val profitBuffer  = scala.collection.mutable.ArrayBuffer.empty[Double]
+                
+                // Initialize the appropriate amount of 0's to the profit buffer
+                advertisers.foreach((ad_id: Int) => {
+                    profitBuffer += 0.0
+                })
+                
+                
+                metricList.foreach((record: FMat) => {
+                    val adID = record(1)
+                    val profit = record(2)
+
+                    val clicks = record(3)
+
+                    val bid = record(4)
+                    
+                    var index = advertisers.indexOf(adID.toFloat)
+                    
+                    if (index >= 0) {
+                        //println("Matched: " + record)
+                        profitBuffer(index) = profitBuffer(index) + profit.toFloat
+                    }
+                })
+                
+                println("Profits: " + profitBuffer)
+                
+                var jsonData = Json.obj();
+                for (i <- profitBuffer.indices) {
+                    jsonData += ("Ad " + i + "(id: " + advertisers(i) + ")"-> Json.toJson(profitBuffer(i)))
+                }
+                channel.push(Json.stringify(jsonData)); 
+                
+                
+            } else {
+                var total_profit:Float = 0
+                var total_clicks:Float = 0
+                var total_bids:Float = 0
+                
+                metricList.foreach((record: FMat) => {
+                    val profit = record(2)
+                    total_profit = total_profit + profit.toFloat
+                    
+                    val clicks = record(3)
+                    total_clicks = total_clicks + clicks.toFloat
+                    
+                    val bid = record(4)
+                    total_bids = total_bids + bid.toFloat
+                })
+            
+                var average_bid:Float = total_profit / metricList.size
+                println("Total profit: " + total_profit)
+                //println("Average bid: " + average_bid)
+                println("Total clicks: " + total_clicks)
+                println("Total bids: " + total_bids)
+            
+                var jsonData = Json.obj();
+                jsonData += ("Total Profit" -> Json.toJson(total_profit))
+                jsonData += ("Total Clicks" -> Json.toJson(total_clicks * 100))
+                jsonData += ("Total Bids" -> Json.toJson(total_bids * 10))
+                //jsonData += ("Average Bid" -> Json.toJson(average_bid))
+                channel.push(Json.stringify(jsonData)); 
+            }
             
             batch_number = batch_number + 1
         } else {

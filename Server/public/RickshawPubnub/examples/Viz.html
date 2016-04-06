@@ -238,7 +238,7 @@ function initializeGraph(JSONdata) {
 
     new Rickshaw.Fixtures.PubNub({
         channel: channelID,
-        // limit: 5,  // add this in to limit the number available in playback
+        limit: 50,  // add this in to limit the number available in playback
         subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f', 
         graph: graph
     });
