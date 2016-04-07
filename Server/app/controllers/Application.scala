@@ -72,7 +72,7 @@ class Waiter() extends Actor {
   val reservePrice = 4.0f
   
   // OPTION: this determines whether we plot advertiser's stats, or aggregate
-  var plotAdvertisers = 1
+  var plotAdvertisers = 0
   var advertisers = List(99, 1455, 5)
 
   val keyWords = loadSBMat(dataPath + "keywords.sbmat")
@@ -152,14 +152,12 @@ class Waiter() extends Actor {
                     profitBuffer += 0.0
                 })
                 
-                
+                // batch, auction_id, ad_id, profit, click, price
                 metricList.foreach((record: FMat) => {
-                    val adID = record(1)
-                    val profit = record(2)
-
-                    val clicks = record(3)
-
-                    val bid = record(4)
+                    val adID = record(2)
+                    val profit = record(3)
+                    val clicks = record(4)
+                    val bid_price = record(5)
                     
                     var index = advertisers.indexOf(adID.toFloat)
                     
@@ -183,14 +181,15 @@ class Waiter() extends Actor {
                 var total_clicks:Float = 0
                 var total_bids:Float = 0
                 
+                // batch, auction_id, ad_id, profit, click, price
                 metricList.foreach((record: FMat) => {
-                    val profit = record(2)
+                    val profit = record(3)
                     total_profit = total_profit + profit.toFloat
                     
-                    val clicks = record(3)
+                    val clicks = record(4)
                     total_clicks = total_clicks + clicks.toFloat
                     
-                    val bid = record(4)
+                    val bid = record(5)
                     total_bids = total_bids + bid.toFloat
                 })
             
@@ -203,7 +202,7 @@ class Waiter() extends Actor {
                 var jsonData = Json.obj();
                 jsonData += ("Total Profit" -> Json.toJson(total_profit))
                 jsonData += ("Total Clicks" -> Json.toJson(total_clicks * 100))
-                jsonData += ("Total Bids" -> Json.toJson(total_bids * 10))
+                jsonData += ("Total Bids" -> Json.toJson(total_bids * 100))
                 //jsonData += ("Average Bid" -> Json.toJson(average_bid))
                 channel.push(Json.stringify(jsonData)); 
             }
