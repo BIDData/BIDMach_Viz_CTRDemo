@@ -192,6 +192,8 @@ var pubnub = PUBNUB({
 var graphCreated = 0;
 var numSeries = 0;
 
+var batch_number = 0;
+var annotator;
 
 // Initialize the Rickshaw graph. This should be called only once.
 function initializeGraph(JSONdata) {
@@ -262,7 +264,7 @@ function initializeGraph(JSONdata) {
         }
     );
 
-    var annotator = new Rickshaw.Graph.Annotate( 
+    annotator = new Rickshaw.Graph.Annotate( 
         {
             graph: graph,
             element: document.getElementById('timeline')
@@ -355,6 +357,8 @@ function readJSON(JSONdata) {
 
     var x_axis_value = Math.floor(new Date().getTime() / 1000);
     
+    batch_number += 1
+    
     // If this is the first set of time series data, we need to create the graph.
     if (graphCreated == 0) {
         initializeGraph(JSONdata);
@@ -383,6 +387,9 @@ function readJSON(JSONdata) {
             }
         }
     ); 
+    
+    annotator.add(x_axis_value, "Batch: " + batch_number)
+    annotator.update()
     
     ws.send("Sending new data...")
 };
