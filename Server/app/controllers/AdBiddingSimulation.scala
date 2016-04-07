@@ -26,7 +26,8 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
 
   var source: FileSource = null
-  val IMPRESSION = 1000
+  var batchCount = 0
+
   var curr_bid = 0.0
 
   /**
@@ -40,13 +41,12 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     source.init
     var metricList = mutable.MutableList[FMat]()
 
-    var i = 0
     while (source.hasNext) {
+      batchCount += 1
       val recordsGroup = source.next
       recordsGroup.foreach((records: Mat) => {
         metricList ++= simulate(FMat(records), advertiserMap, keyPhraseMap)
       })
-      i += 1
     }
     metricList
   }
@@ -119,7 +119,7 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     val rankList = getRankings(qualityScores, numAuction)
 
 
-    /** rankMatrices */
+    /* Metric Calculation */
 
     val profitMatrices = new mutable.ListBuffer[FMat]
 
@@ -128,20 +128,23 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
       ranks.foreach {
         case (advertiser: String, rank: Int) => {
-          val profitMatrix:FMat = FMat(zeros(1, 5))
-          profitMatrix(0, 0) = auctionId.toFloat
-          profitMatrix(0, 1) = advertiserMap(advertiser)
+          val profitMatrix:FMat = FMat(zeros(1, AdBiddingSimulation.NUM_METRIC_FIELDS))
+          profitMatrix(0, AdBiddingSimulation.INDEX_BATCH_ID) = batchCount
+          profitMatrix(0, AdBiddingSimulation.INDEX_AUCTION_ID) = auctionId.toFloat
+          profitMatrix(0, AdBiddingSimulation.INDEX_ADVERTISER_ID) = advertiserMap(advertiser)
           //metric 1: profit per auction per advertiser
           if (rank <= numSlots) {
-            val profit = calculateProfit(finalQuality, keyPhrase, advertiser, rank)
-            profitMatrix(0, 2) = profit
+            val viewTuple = simulateView(finalQuality, keyPhrase, advertiser, rank)
+            val price = viewTuple._1
+            val numClick = viewTuple._2
+            profitMatrix(0, AdBiddingSimulation.INDEX_PROFIT) = price * numClick
             //metric 2: number of clicks estimated for advertiser in this auction
-            profitMatrix(0, 3) = IMPRESSION * userModel.getCTR(rank, advertiser, keyPhrase)
-            profitMatrix(0, 4) = curr_bid
+            profitMatrix(0, AdBiddingSimulation.INDEX_CLICK) = numClick
+            profitMatrix(0, AdBiddingSimulation.INDEX_PRICE) = price
           } else {
-            profitMatrix(0, 2) = 0
-            profitMatrix(0, 3) = 0
-            profitMatrix(0, 4) = 0
+            profitMatrix(0, AdBiddingSimulation.INDEX_PROFIT) = 0
+            profitMatrix(0, AdBiddingSimulation.INDEX_CLICK) = 0
+            profitMatrix(0, AdBiddingSimulation.INDEX_PRICE) = 0
           }
           profitMatrices += profitMatrix
         }
@@ -208,34 +211,30 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     }
   }
 
-  def calculateProfit(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Float = {
+  def simulateView(finalScores: Map[Int, Float], keyPhrase: String, advertiser: String, rank: Int) : Tuple2[Float, Float] = {
     // Now, calculate what we would have had to bid to maintain this position
     val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
 
     // calculate the biding price for rank
-
-    curr_bid = invQualityFunc(finalScores(rank), finalCTR)
+    val curr_bid = invQualityFunc(finalScores(rank), finalCTR)
 
     if (reservePrice > curr_bid) {
-      // when biding price bellow reservePrice we will abort the bids, set to 0 here is help to keep track biding price
-      // in the auction
-      curr_bid = 0.0
-      return 0
+      return Tuple2(0.0f, 0.0f)
     }
+
     // Grab the final score of the next ranking
     val nextScore = if (rank + 1 < finalScores.size) finalScores(rank + 1) else 0
 
     var price = invQualityFunc(nextScore, finalCTR)
 
-    /** IF the biding price from next bid is smaller than the reservePrice then pay bidding price
+    /**  IF the biding price from next bid is smaller than the reservePrice then pay bidding price
       *  O.W pay for the reservePrice
       */
     if (reservePrice >= price) {
       price = reservePrice
     }
 
-    //TODO: should we only use the rank component here, or the full CTR?
-    price * 1000 * userModel.getCTR(rank, advertiser, keyPhrase)
+    Tuple2(price, AdBiddingSimulation.IMPRESSION * userModel.getCTR(rank, advertiser, keyPhrase))
   }
 
 
@@ -292,6 +291,15 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 object AdBiddingSimulation {
 
   private var auctionIdgen: Long = 0L
+  val IMPRESSION = 1000
+  val NUM_METRIC_FIELDS = 6
+  val INDEX_BATCH_ID = 0
+  val INDEX_AUCTION_ID = 1
+  val INDEX_ADVERTISER_ID = 2
+  val INDEX_PROFIT = 3
+  val INDEX_CLICK = 4
+  val INDEX_PRICE = 5
+
 
   def generateAuctionId(): Long = {
     auctionIdgen += 1
