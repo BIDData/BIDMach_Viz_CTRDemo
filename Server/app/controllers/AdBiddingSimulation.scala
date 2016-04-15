@@ -101,11 +101,11 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     */
 
   def simulateAuction(group: FMat, advertiserMap: Dict, keyPhraseMap: Dict) : List[FMat] = {
-    val keyPhraseID = group(0, 2).toInt - 1 //TODO: find which column is the keyPhraseID
+    val keyPhraseID = group(0, 2).toInt //TODO: find which column is the keyPhraseID
     val keyPhrase = keyPhraseMap(keyPhraseID)
 
     val bidList = group(?, 3).data.toList
-    val advertiserList = group(?, 1).data.toList.map((id: Float) => advertiserMap(id.toInt-1))
+    val advertiserList = group(?, 1).data.toList.map((id: Float) => advertiserMap(id.toInt))
     val bids: Map[String, Float] = advertiserList.zip(bidList)(breakOut)
 
     val qualityScores = bids map {

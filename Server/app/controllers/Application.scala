@@ -11,6 +11,7 @@ import scala.collection._
 import akka.util.Timeout
 import akka.pattern.ask
 
+
 import BIDMat._
 import BIDMat.MatFunctions._
 import BIDMat.SciFunctions._
@@ -73,7 +74,7 @@ class Waiter() extends Actor {
   
   // OPTION: this determines whether we plot advertiser's stats, or aggregate
   var plotAdvertisers = 0
-  var advertisers = List(99, 1455, 5)
+  var advertisers = List(891, 900, 809, 894, 311)
 
   val keyWords = loadSBMat(dataPath + "keywords.sbmat")
 
@@ -183,12 +184,13 @@ class Waiter() extends Actor {
                 
                 // batch, auction_id, ad_id, profit, click, price
                 metricList.foreach((record: FMat) => {
+                    
                     val profit = record(3)
                     total_profit = total_profit + profit.toFloat
-                    
+                        
                     val clicks = record(4)
                     total_clicks = total_clicks + clicks.toFloat
-                    
+                        
                     val bid = record(5)
                     total_bids = total_bids + bid.toFloat
                 })
