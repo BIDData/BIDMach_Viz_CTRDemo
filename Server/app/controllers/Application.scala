@@ -138,13 +138,10 @@ class Waiter() extends Actor {
             println("batch complete: " + batch_number)
             println(metricList.size)
             
-            // 99
             
             if (plotAdvertisers == 1) {
                 
                 println(advertisers.size)
-                
-                val profitList = List.fill(advertisers.size)(0)
                 
                 val profitBuffer  = scala.collection.mutable.ArrayBuffer.empty[Double]
                 
@@ -182,8 +179,17 @@ class Waiter() extends Actor {
                 var total_clicks:Float = 0
                 var total_bids:Float = 0
                 
+                val profitBuffer  = scala.collection.mutable.ArrayBuffer.empty[Double]
+                // Initialize the appropriate amount of 0's to the profit buffer
+                advertisers.foreach((ad_id: Int) => {
+                    profitBuffer += 0.0
+                })
+                
+                
                 // batch, auction_id, ad_id, profit, click, price
                 metricList.foreach((record: FMat) => {
+                    
+                    val adID = record(2)
                     
                     val profit = record(3)
                     total_profit = total_profit + profit.toFloat
@@ -193,6 +199,12 @@ class Waiter() extends Actor {
                         
                     val bid = record(5)
                     total_bids = total_bids + bid.toFloat
+                    
+                    var index = advertisers.indexOf(adID.toFloat)
+                    if (index >= 0) {
+                        //println("Matched: " + record)
+                        profitBuffer(index) = profitBuffer(index) + profit.toFloat
+                    }
                 })
             
                 var average_bid:Float = total_profit / metricList.size
@@ -204,7 +216,12 @@ class Waiter() extends Actor {
                 var jsonData = Json.obj();
                 jsonData += ("Total Profit" -> Json.toJson(total_profit))
                 jsonData += ("Total Clicks" -> Json.toJson(total_clicks * 100))
-                jsonData += ("Total Bids" -> Json.toJson(total_bids * 100))
+                jsonData += ("Sum of Prices" -> Json.toJson(total_bids * 100))
+                
+                for (i <- profitBuffer.indices) {
+                    jsonData += ("Profit: Ad " + i + " (id: " + advertisers(i) + ")"-> Json.toJson(profitBuffer(i)))
+                }
+                
                 //jsonData += ("Average Bid" -> Json.toJson(average_bid))
                 channel.push(Json.stringify(jsonData)); 
             }
