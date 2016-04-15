@@ -199,7 +199,7 @@ class Waiter() extends Actor {
                 println("Total profit: " + total_profit)
                 //println("Average bid: " + average_bid)
                 println("Total clicks: " + total_clicks)
-                println("Total bids: " + total_bids)
+                println("Sum of Prices: " + total_bids)
             
                 var jsonData = Json.obj();
                 jsonData += ("Total Profit" -> Json.toJson(total_profit))

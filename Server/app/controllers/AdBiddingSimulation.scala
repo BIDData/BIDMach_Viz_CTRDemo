@@ -59,9 +59,9 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   def runBatch(): mutable.MutableList[FMat] = {
     if (source == null || (!source.hasNext)) {
       source = FileSource.apply(dataPath + "%d.fmat")
-      source.opts.nend = 5 //need to change
+      source.opts.nend = 1 //need to change
       source.opts.dorows = true
-      source.opts.batchSize = 100000
+      source.opts.batchSize = 50000
       source.init
     }
     val records = source.next(0)
