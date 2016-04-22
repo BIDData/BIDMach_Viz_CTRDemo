@@ -28,7 +28,12 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
   var source: FileSource = null
   var batchCount = 0
 
+  // log metrics
   var curr_bid = 0.0
+  var singleBid = 0
+  var numAuctionInBatch = 0
+  var numBids = 0
+  var numOriginalBids = 0
 
   /**
     * start the simulation cycle.
@@ -65,7 +70,17 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
       source.init
     }
     val records = source.next(0)
-    simulate(FMat(records), advertiserMap, keyPhraseMap)
+    singleBid = 0
+    numAuctionInBatch = 0
+    numBids = 0
+    numOriginalBids = 0
+    val result = simulate(FMat(records), advertiserMap, keyPhraseMap)
+    println("===========================")
+    println("numBids: " + numBids)
+    println("numOriginalBids: " + numOriginalBids)
+    println("numResults: " + result.length + ", auction with 1 bid: " + singleBid.toString + ", total number of auction: " + numAuctionInBatch.toString)
+    result
+
   }
 
   /**
@@ -105,12 +120,16 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     val keyPhrase = keyPhraseMap(keyPhraseID)
 
     val bidList = group(?, 3).data.toList
+    numOriginalBids += bidList.size
     val advertiserList = group(?, 1).data.toList.map((id: Float) => advertiserMap(id.toInt))
-    val bids: Map[String, Float] = advertiserList.zip(bidList)(breakOut)
+    val bids: List[(String, Float)] = advertiserList.zip(bidList)
+    numBids += bids.size
 
+    var rowId = 0 // for identifying each row, in case there are duplicates of advertisers
     val qualityScores = bids map {
       case (advertiser: String, bid: Float) => {
-        (advertiser, getQualityScore(advertiser, keyPhrase, bid))
+        rowId += 1
+        (advertiser, getQualityScore(advertiser, keyPhrase, bid), rowId - 1)
       }
     }
 
@@ -123,11 +142,17 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
 
     val profitMatrices = new mutable.ListBuffer[FMat]
 
-    rankList.foreach((ranks: Map[String, Int]) => {
+    rankList.foreach((ranks: Map[Int, (String, Int)]) => {
+      numAuctionInBatch += 1
+      if (ranks.size == 1) {
+        singleBid += 1
+      }
       val auctionId = AdBiddingSimulation.generateAuctionId()
       val finalQuality = getFinalQualityScores(keyPhrase, ranks, bids)
+      val rankToPrice = mutable.Map[Int, Float]()
+
       ranks.foreach {
-        case (advertiser: String, rank: Int) => {
+        case (rank: Int, (advertiser: String, rowId: Int)) => {
           val profitMatrix:FMat = FMat(zeros(1, AdBiddingSimulation.NUM_METRIC_FIELDS))
           profitMatrix(0, AdBiddingSimulation.INDEX_BATCH_ID) = batchCount
           profitMatrix(0, AdBiddingSimulation.INDEX_AUCTION_ID) = auctionId.toFloat
@@ -137,19 +162,34 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
             val viewTuple = simulateView(finalQuality, keyPhrase, advertiser, rank)
             val price = viewTuple._1
             val numClick = viewTuple._2
+            var nextPrice = 0.0f
+            // Hack: Calculate the price for next advertiser, in order to get the price gap
+            rankToPrice.put(rank, price)
+            if (rank == ranks.size) {
+              nextPrice = price
+            } else {
+              val viewTupleForNextOne = simulateView(finalQuality, keyPhrase, ranks(rank + 1)._1, rank + 1)
+              nextPrice = viewTupleForNextOne._1
+            }
             profitMatrix(0, AdBiddingSimulation.INDEX_PROFIT) = price * numClick
             //metric 2: number of clicks estimated for advertiser in this auction
             profitMatrix(0, AdBiddingSimulation.INDEX_CLICK) = numClick
             profitMatrix(0, AdBiddingSimulation.INDEX_PRICE) = price
+            profitMatrix(0, AdBiddingSimulation.PRICE_GAP) = price - nextPrice
           } else {
             profitMatrix(0, AdBiddingSimulation.INDEX_PROFIT) = 0
             profitMatrix(0, AdBiddingSimulation.INDEX_CLICK) = 0
             profitMatrix(0, AdBiddingSimulation.INDEX_PRICE) = 0
+            profitMatrix(0, AdBiddingSimulation.PRICE_GAP) = 0
           }
           profitMatrices += profitMatrix
         }
       }
-      //TODO: could add more metrics, such as volume of ads, ads per advertiser, etc.
+      // log prints
+      val mean = rankToPrice.valuesIterator.sum / rankToPrice.size
+      val priceList = rankToPrice.toList.sortBy(_._2).map(x => x._2)
+      //println(mean.toString, quantile(priceList, 25).toString, quantile(priceList, 75).toString)
+      //println(rankToPrice)
     })
     profitMatrices.toList
   }
@@ -181,32 +221,32 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     * @param numAuctions number of auctions in this group.
     * @return a list of (advertiser -> rank)
     */
-  def getRankings(qualityScores: Map[String, Float], numAuctions: Int): List[Map[String, Int]] = {
-    val rankList: List[mutable.MutableList[String]] = (0 until numAuctions).map(
+  def getRankings(qualityScores: List[(String, Float, Int)], numAuctions: Int): List[Map[Int, (String, Int)]] = {
+    val rankList: List[mutable.MutableList[(String, Int)]] = (0 until numAuctions).map(
       (i: Int) => {
-        new mutable.MutableList[String]()
+        new mutable.MutableList[(String, Int)]()
       }).toList
 
-    val sortedAdvertisers = qualityScores.toList.sortBy(- _._2)
+    val sortedAdvertisers = qualityScores.sortBy(- _._2)
     var rankListInd = 0
     sortedAdvertisers.foreach(p => {
-      rankList(rankListInd) += p._1
+      rankList(rankListInd) += Tuple2(p._1, p._3) //p._3 is the rowID
       rankListInd = (rankListInd + 1) % rankList.size
     })
 
-    rankList.map((ranks: mutable.MutableList[String]) => {
-      (0 until ranks.size).map((i: Int) => (ranks(i), i + 1)).toMap
+    rankList.map((ranks: mutable.MutableList[(String, Int)]) => {
+      (0 until ranks.size).map((i: Int) => (i + 1, ranks(i))).toMap
     })
   }
 
 
 
-  def getFinalQualityScores(keyPhrase: String, ranks: Map[String, Int],
-                            bids: Map[String, Float]): Map[Int, Float] = {
+  def getFinalQualityScores(keyPhrase: String, ranks: Map[Int, (String, Int)],
+                            bids: List[(String, Float)]): Map[Int, Float] = {
     ranks map {
-      case (advertiser: String, rank: Int) => {
+      case (rank: Int, (advertiser: String, rowId: Int)) => {
         val finalCTR = userModel.getCTR(rank, advertiser, keyPhrase)
-        (rank, qualityFunc(finalCTR, bids(advertiser)))
+        (rank, qualityFunc(finalCTR, bids(rowId)._2))
       }
     }
   }
@@ -285,6 +325,11 @@ class AdBiddingSimulation(adModel: CTRModel, userModel: CTRModel,
     math.pow(quality / math.pow(CTR, alpha), 1 / beta).toFloat
   }
 
+  def quantile(lst: List[Float], q:Int) : Float = {
+    val n = Math.round(lst.length * q / 100).toInt
+    lst(n)
+  }
+
 
 }
 
@@ -292,13 +337,15 @@ object AdBiddingSimulation {
 
   private var auctionIdgen: Long = 0L
   val IMPRESSION = 1000
-  val NUM_METRIC_FIELDS = 6
+  val NUM_METRIC_FIELDS = 7
   val INDEX_BATCH_ID = 0
   val INDEX_AUCTION_ID = 1
   val INDEX_ADVERTISER_ID = 2
   val INDEX_PROFIT = 3
   val INDEX_CLICK = 4
   val INDEX_PRICE = 5
+  val PRICE_GAP = 6
+
 
 
   def generateAuctionId(): Long = {

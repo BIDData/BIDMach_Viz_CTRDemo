@@ -70,7 +70,7 @@ class Waiter() extends Actor {
   println("Initializing Simulation")
   val alpha = 0.5f
   val beta = 0.5f
-  val reservePrice = 4.0f
+  val reservePrice = 50f
   
   // OPTION: this determines whether we plot advertiser's stats, or aggregate
   var plotAdvertisers = 0
@@ -178,6 +178,7 @@ class Waiter() extends Actor {
                 var total_profit:Float = 0
                 var total_clicks:Float = 0
                 var total_bids:Float = 0
+                var total_gap:Float = 0
                 
                 val profitBuffer  = scala.collection.mutable.ArrayBuffer.empty[Double]
                 // Initialize the appropriate amount of 0's to the profit buffer
@@ -199,15 +200,20 @@ class Waiter() extends Actor {
                         
                     val bid = record(5)
                     total_bids = total_bids + bid.toFloat
-                    
+
+                    val gap = record(6)
+                    total_gap = total_gap + gap.toFloat
+   
                     var index = advertisers.indexOf(adID.toFloat)
                     if (index >= 0) {
                         //println("Matched: " + record)
                         profitBuffer(index) = profitBuffer(index) + profit.toFloat
                     }
+
                 })
             
                 var average_bid:Float = total_profit / metricList.size
+                var avg_gap:Float = total_gap / metricList.size
                 println("Total profit: " + total_profit)
                 //println("Average bid: " + average_bid)
                 println("Total clicks: " + total_clicks)
@@ -222,8 +228,10 @@ class Waiter() extends Actor {
                     jsonData += ("Profit: Ad " + (i + 1) + " (id: " + advertisers(i) + ")"-> Json.toJson(profitBuffer(i)))
                 }
                 
+                jsonData += ("Total Bids" -> Json.toJson(total_bids * 100))
+                jsonData += ("Average Price Gap" -> Json.toJson(avg_gap))
                 //jsonData += ("Average Bid" -> Json.toJson(average_bid))
-                channel.push(Json.stringify(jsonData)); 
+                channel.push(Json.stringify(jsonData))
             }
             
             batch_number = batch_number + 1

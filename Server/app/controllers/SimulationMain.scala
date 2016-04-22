@@ -33,7 +33,7 @@ object SimulationMain {
     println("Initializing Simulation")
     val alpha = 0.5f
     val beta = 0.5f
-    val reservePrice = 4.0f
+    val reservePrice = 1000f
 
     val keyWords = loadSBMat(dataPath + "keywords.sbmat")
 
