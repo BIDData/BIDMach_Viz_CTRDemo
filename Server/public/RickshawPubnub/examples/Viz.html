@@ -48,13 +48,20 @@
     <script src="../src/js/Rickshaw.Fixtures.PubNub.js"></script>
 
     <script src="js/extensions.js"></script>
+    
+    
+    <!-- These belongs to the HTML file where you want C3 to work - put these lines into your <head> tag -->
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.js"></script>
+    <script type="text/javascript" src="../vendor/c3-0.4.10/c3.js"></script>
+    <link href="../vendor/c3-0.4.10/c3.css" rel="stylesheet" type="text/css">
+
 </head>
 <body>
 
 <div id="content">
 
     <form id="side_panel">
-        <h1>Profits by Advertiser</h1>
+        <h1>Metrics Graph</h1>
         <section><div id="legend"></div></section>
         <section>
             <div id="renderer_form" class="toggler">
@@ -130,6 +137,8 @@
                 &emsp;<input type="button" onclick="stop();" value="Pause" /> &emsp;
                 <input type="button" onclick="continueSim();" align="right" value="Continue" />
                 -->
+                
+                
             </div>
         </section>
     </form>
@@ -139,6 +148,21 @@
         <div id="timeline"></div>
         <div id="preview"></div>
     </div>
+    
+    <div style="width: 1500px;" id="chart_container2">
+        <div style="float: left; width: 450px;" id="chartAd1"> Top Ad 1</div>
+
+        <div style="float: left; width: 450px;" id="chartAd2"></div>
+
+        <div style="float: left; width: 450px;" id="chartAd3"></div>
+    </div>    
+    
+    <div style="width: 1500px;" id="chart_container3">
+
+        <div style="float: left; width: 450px;" id="chartAd4"></div>
+        <div style="float: left; width: 450px;" id="chartAd5"></div>
+    </div>  
+
 </div>
 
 <script>
@@ -195,6 +219,7 @@ var numSeries = 0;
 var batch_number = 0;
 var annotator;
 
+
 // Initialize the Rickshaw graph. This should be called only once.
 function initializeGraph(JSONdata) {
 
@@ -223,7 +248,7 @@ function initializeGraph(JSONdata) {
             data: [{x:xInit,y:0}]
             };
     }
-
+    
 
     var graph = new Rickshaw.Graph( {
         element: document.getElementById("chart"),
@@ -235,25 +260,140 @@ function initializeGraph(JSONdata) {
         series: series
     });
 
+
     // Render the graph.
     graph.render();
 
+
+    
     new Rickshaw.Fixtures.PubNub({
         channel: channelID,
         limit: 60,  // add this in to limit the number available in playback
         subscribe_key: 'sub-c-d5452104-90f7-11e5-bdb6-0619f8945a4f', 
         graph: graph
     });
+    
+    
+    // Make the advertiser profit charts
+    chartAd1 = c3.generate({
+        bindto: "#chartAd1",
+        size: {
+            height: 220,
+            width: 440
+        },
+        data: {
+            columns: [
+                ['Top Ad 1 Profit', 0]
+            ]
+        },
+        axis: {
+            y: {
+                min: 0,
+                padding: {bottom: 0}
+            }
+        }
+    });
+    
+    chartAd2 = c3.generate({
+        bindto: "#chartAd2",
+        size: {
+            height: 220,
+            width: 440
+        },
+        data: {
+            columns: [
+                ['Top Ad 2 Profit', 0]
+            ]
+        },
+        color: {
+            pattern: ['#ff7f0e']
+        },
+        axis: {
+            y: {
+                min: 0,
+                padding: {bottom: 0}
+            }
+        }
+    });
+    
+    chartAd3 = c3.generate({
+        bindto: "#chartAd3",
+        size: {
+            height: 220,
+            width: 440
+        },
+        data: {
+            columns: [
+                ['Top Ad 3 Profit', 0]
+            ]
+        },
+        color: {
+            pattern: ['#2ca02c']
+        },
+        axis: {
+            y: {
+                min: 0,
+                padding: {bottom: 0}
+            }
+        }
+    });
+    
+    chartAd4 = c3.generate({
+        bindto: "#chartAd4",
+        size: {
+            height: 220,
+            width: 440
+        },
+        data: {
+            columns: [
+                ['Top Ad 4 Profit', 0]
+            ]
+        },
+        color: {
+            pattern: ['#d62728']
+        },
+        axis: {
+            y: {
+                min: 0,
+                padding: {bottom: 0}
+            }
+        }
+    });
+    
+    chartAd5 = c3.generate({
+        bindto: "#chartAd5",
+        size: {
+            height: 220,
+            width: 440
+        },
+        data: {
+            columns: [
+                ['Top Ad 5 Profit', 0]
+            ]
+        },
+        color: {
+            pattern: ['#9467bd']
+        },
+        axis: {
+            y: {
+                min: 0,
+                padding: {bottom: 0}
+            }
+        }
+    });
+    
 
     // The graph is created at this point
     graphCreated = 1;
 
+    /*
     var preview = new Rickshaw.Graph.RangeSlider.Preview( 
         {
             graph: graph,
             element: document.getElementById('preview'),
         } 
     );
+    */
 
     var hoverDetail = new Rickshaw.Graph.HoverDetail( 
         {
@@ -337,6 +477,7 @@ function initializeGraph(JSONdata) {
     );
 
     
+    /*
     var previewXAxis = new Rickshaw.Graph.Axis.Time(
         {
             graph: preview.previews[0],
@@ -346,6 +487,7 @@ function initializeGraph(JSONdata) {
     );
 
     previewXAxis.render();
+    */
 
 }
 
@@ -362,6 +504,12 @@ function readJSON(JSONdata) {
     // If this is the first set of time series data, we need to create the graph.
     if (graphCreated == 0) {
         initializeGraph(JSONdata);
+        
+        ad1_profits = [];
+        ad2_profits = [];
+        ad3_profits = [];
+        ad4_profits = [];
+        ad5_profits = [];
     }
 
     // The x axis is the current time
@@ -373,9 +521,71 @@ function readJSON(JSONdata) {
         if (data.hasOwnProperty(key)) {
             //alert(key + " -> " + data[key]);
             y_values.push(data[key])
+            
+            if (key.indexOf("Ad 1") > -1) {
+                ad1_profits.push(data[key]);
+                
+                if (ad1_profits.length > 60) {
+                    ad1_profits.shift();
+                }
+            } else if (key.indexOf("Ad 2") > -1) {
+                ad2_profits.push(data[key]);
+                
+                if (ad2_profits.length > 60) {
+                    ad2_profits.shift();
+                }
+            } else if (key.indexOf("Ad 3") > -1) {
+                ad3_profits.push(data[key]);
+                
+                if (ad3_profits.length > 60) {
+                    ad3_profits.shift();
+                }
+            } else if (key.indexOf("Ad 4") > -1) {
+                ad4_profits.push(data[key]);
+                
+                if (ad4_profits.length > 60) {
+                    ad4_profits.shift();
+                }
+            } else if (key.indexOf("Ad 5") > -1) {
+                ad5_profits.push(data[key]);
+                
+                if (ad5_profits.length > 60) {
+                    ad5_profits.shift();
+                }
+            }
         }
     }
+    
+    
+    chartAd1.load({
+        columns: [
+            ['Top Ad 1 Profit'].concat(ad1_profits)
+        ]
+    });
+    
+    chartAd2.load({
+        columns: [
+            ['Top Ad 2 Profit'].concat(ad2_profits)
+        ]
+    });
 
+    chartAd3.load({
+        columns: [
+            ['Top Ad 3 Profit'].concat(ad3_profits)
+        ]
+    });
+    
+    chartAd4.load({
+        columns: [
+            ['Top Ad 4 Profit'].concat(ad4_profits)
+        ]
+    });
+
+    chartAd5.load({
+        columns: [
+            ['Top Ad 5 Profit'].concat(ad5_profits)
+        ]
+    });
 
     // Publish the current set of data
     pubnub.publish( 

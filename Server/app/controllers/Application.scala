@@ -219,7 +219,7 @@ class Waiter() extends Actor {
                 jsonData += ("Sum of Prices" -> Json.toJson(total_bids * 100))
                 
                 for (i <- profitBuffer.indices) {
-                    jsonData += ("Profit: Ad " + i + " (id: " + advertisers(i) + ")"-> Json.toJson(profitBuffer(i)))
+                    jsonData += ("Profit: Ad " + (i + 1) + " (id: " + advertisers(i) + ")"-> Json.toJson(profitBuffer(i)))
                 }
                 
                 //jsonData += ("Average Bid" -> Json.toJson(average_bid))
