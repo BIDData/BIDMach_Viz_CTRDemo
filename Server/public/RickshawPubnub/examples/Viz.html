@@ -149,19 +149,12 @@
         <div id="preview"></div>
     </div>
     
-    <div style="width: 1500px;" id="chart_container2">
-        <div style="float: left; width: 450px;" id="chartAd1"> Top Ad 1</div>
+    <div style="margin-left:300px" id="chartAd1"></div>
+    <div style="margin-left:300px" id="chartAd2"></div>
+    <div style="margin-left:300px" id="chartAd3"></div>
+    <div style="margin-left:300px" id="chartAd4"></div>
+    <div style="margin-left:300px" id="chartAd5"></div>
 
-        <div style="float: left; width: 450px;" id="chartAd2"></div>
-
-        <div style="float: left; width: 450px;" id="chartAd3"></div>
-    </div>    
-    
-    <div style="width: 1500px;" id="chart_container3">
-
-        <div style="float: left; width: 450px;" id="chartAd4"></div>
-        <div style="float: left; width: 450px;" id="chartAd5"></div>
-    </div>  
 
 </div>
 
@@ -279,7 +272,7 @@ function initializeGraph(JSONdata) {
         bindto: "#chartAd1",
         size: {
             height: 220,
-            width: 440
+            width: 660
         },
         data: {
             columns: [
@@ -291,6 +284,14 @@ function initializeGraph(JSONdata) {
                 min: 0,
                 padding: {bottom: 0}
             }
+        },
+        legend: {
+            position: 'inset',
+            inset: {
+                anchor: 'top-left', 
+                x: 10,
+                y: -5
+            }
         }
     });
     
@@ -298,7 +299,7 @@ function initializeGraph(JSONdata) {
         bindto: "#chartAd2",
         size: {
             height: 220,
-            width: 440
+            width: 660
         },
         data: {
             columns: [
@@ -313,6 +314,14 @@ function initializeGraph(JSONdata) {
                 min: 0,
                 padding: {bottom: 0}
             }
+        },
+        legend: {
+            position: 'inset',
+            inset: {
+                anchor: 'top-left', 
+                x: 10,
+                y: -5
+            }
         }
     });
     
@@ -320,7 +329,7 @@ function initializeGraph(JSONdata) {
         bindto: "#chartAd3",
         size: {
             height: 220,
-            width: 440
+            width: 660
         },
         data: {
             columns: [
@@ -335,6 +344,14 @@ function initializeGraph(JSONdata) {
                 min: 0,
                 padding: {bottom: 0}
             }
+        },
+        legend: {
+            position: 'inset',
+            inset: {
+                anchor: 'top-left', 
+                x: 10,
+                y: -5
+            }
         }
     });
     
@@ -342,7 +359,7 @@ function initializeGraph(JSONdata) {
         bindto: "#chartAd4",
         size: {
             height: 220,
-            width: 440
+            width: 660
         },
         data: {
             columns: [
@@ -357,6 +374,14 @@ function initializeGraph(JSONdata) {
                 min: 0,
                 padding: {bottom: 0}
             }
+        },
+        legend: {
+            position: 'inset',
+            inset: {
+                anchor: 'top-left', 
+                x: 10,
+                y: -5
+            }
         }
     });
     
@@ -364,7 +389,7 @@ function initializeGraph(JSONdata) {
         bindto: "#chartAd5",
         size: {
             height: 220,
-            width: 440
+            width: 660
         },
         data: {
             columns: [
@@ -378,6 +403,14 @@ function initializeGraph(JSONdata) {
             y: {
                 min: 0,
                 padding: {bottom: 0}
+            }
+        },
+        legend: {
+            position: 'inset',
+            inset: {
+                anchor: 'top-left', 
+                x: 10,
+                y: -5
             }
         }
     });
